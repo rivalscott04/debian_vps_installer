@@ -27,10 +27,10 @@
 
 ### 🎯 Tujuan Utama
 
-- ⚡ **Otomatisasi Total**: Setup server web tanpa intervensi manual
+- ⚡ **Total Automation**: Setup web server tanpa intervensi manual
 - 🧩 **Modular Design**: Komponen terpisah untuk fleksibilitas maksimal
-- 🔒 **Security First**: Konfigurasi keamanan terbaik practices
-- 📈 **Performance Optimized**: Tuning server untuk performa optimal
+- 🔒 **Security First**: Konfigurasi keamanan best practices
+- 📈 **Performance Optimized**: Server tuning untuk performa optimal
 - 🛠️ **Easy Maintenance**: Struktur yang mudah dipelihara dan diupdate
 
 ## ✨ Fitur Utama
@@ -104,13 +104,13 @@ curl -sSL https://raw.githubusercontent.com/yourusername/vpsdebianinstaller/main
 ### 📋 Langkah-langkah Instalasi
 
 1. **System Update**: Update dan upgrade sistem Debian
-2. **PHP Installation**: Pilih versi PHP (8.0-8.3) dan ekstensi
+2. **PHP Installation**: Pilih versi PHP (8.0-8.3) dan extensions
 3. **Web Server**: Install dan konfigurasi Nginx
 4. **Database**: Setup MariaDB/MySQL
 5. **Applications**: Install WordPress dan phpMyAdmin
 6. **SSL Setup**: Konfigurasi SSL dengan Let's Encrypt
-7. **Optimization**: Tuning server dan caching
-8. **Security**: Hardening dan backup setup
+7. **Optimization**: Server tuning dan caching
+8. **Security**: Security hardening dan backup setup
 
 ## 📁 Struktur Proyek
 
@@ -132,11 +132,11 @@ vpsdebianinstaller/
 
 | Module | Description | Dependencies |
 |--------|-------------|--------------|
-| `install_php.sh` | PHP installation dengan ekstensi lengkap | - |
-| `install_nginx.sh` | Nginx web server + security config | PHP |
+| `install_php.sh` | PHP installation dengan extensions lengkap | - |
+| `install_nginx.sh` | Nginx web server + security configuration | PHP |
 | `install_wp.sh` | WordPress + database setup | PHP, Nginx, MySQL |
 | `install_pma.sh` | phpMyAdmin dengan security | PHP, Nginx, MySQL |
-| `configure_webapp.sh` | Web app deployment config | PHP, Nginx |
+| `configure_webapp.sh` | Web app deployment configuration | PHP, Nginx |
 | `tuneup.sh` | Server optimization & caching | All modules |
 
 ## ⚙️ Konfigurasi
@@ -148,7 +148,7 @@ Installer mendukung berbagai jenis web application:
 | Type | Document Root | Use Case |
 |------|---------------|----------|
 | **Laravel** | `/public` | Laravel applications |
-| **React/Vue** | `/dist` | Single Page Applications |
+| **React/Vue** | `/dist` | Single Page Applications (SPA) |
 | **PHP Native** | `/` | Traditional PHP websites |
 | **WordPress** | `/` | WordPress sites |
 
@@ -156,13 +156,13 @@ Installer mendukung berbagai jenis web application:
 
 - **Versions**: 8.0, 8.1, 8.2, 8.3
 - **Extensions**: OPcache, Redis, msgpack, igbinary, mysqli, pdo_mysql
-- **Settings**: Optimized untuk production
+- **Settings**: Production-optimized configuration
 
 ### 🗄️ Database Setup
 
-- **MariaDB/MySQL** dengan konfigurasi secure
+- **MariaDB/MySQL** dengan secure configuration
 - **Database creation** otomatis untuk WordPress
-- **User management** dengan privileges minimal
+- **User management** dengan minimal privileges
 
 ## 🔒 Keamanan
 
@@ -270,9 +270,9 @@ Kontribusi sangat dihargai! Berikut cara berkontribusi:
 
 ### 🚨 Important Notes
 
-- **Development Use**: Gunakan di lingkungan development atau server pribadi
+- **Development Use**: Gunakan di development environment atau private server
 - **Backup First**: Selalu backup sistem sebelum menjalankan installer
-- **Testing**: Test di environment terpisah sebelum production
+- **Testing**: Test di separate environment sebelum production
 - **Updates**: Regularly update sistem dan aplikasi
 
 ### 📞 Support
@@ -281,7 +281,7 @@ Jika mengalami masalah:
 
 1. **Check** troubleshooting section
 2. **Search** existing issues
-3. **Create** new issue dengan detail lengkap
+3. **Create** new issue dengan complete details
 4. **Include** system information dan error logs
 
 ---
