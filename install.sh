@@ -15,6 +15,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
+GRAY='\033[0;37m'
 NC='\033[0m' # No Color
 
 # Global variables
@@ -417,6 +418,433 @@ configure_webapp() {
     fi
 }
 
+# Function to show detailed system information
+show_system_info() {
+    clear
+    print_status "🖥️  SYSTEM INFORMATION DASHBOARD"
+    echo ""
+    
+    # Get system data
+    OS_INFO=$(lsb_release -d | cut -d: -f2 | xargs 2>/dev/null || echo "Unknown")
+    KERNEL=$(uname -r)
+    ARCH=$(uname -m)
+    HOSTNAME=$(hostname)
+    UPTIME=$(uptime -p)
+    CPU_CORES=$(nproc)
+    MEMORY_TOTAL=$(free -h | awk 'NR==2{print $2}')
+    MEMORY_USED=$(free -h | awk 'NR==2{print $3}')
+    MEMORY_FREE=$(free -h | awk 'NR==2{print $4}')
+    DISK_TOTAL=$(df -h / | awk 'NR==2{print $2}')
+    DISK_USED=$(df -h / | awk 'NR==2{print $3}')
+    DISK_AVAIL=$(df -h / | awk 'NR==2{print $4}')
+    DISK_PERCENT=$(df -h / | awk 'NR==2{print $5}')
+    LOAD_AVG=$(uptime | awk -F'load average:' '{print $2}')
+    CPU_USAGE=$(top -bn1 2>/dev/null | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 2>/dev/null || echo "Unknown")
+    PUBLIC_IP=$(curl -s --max-time 5 ifconfig.me 2>/dev/null || echo 'Not available')
+    LOCAL_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo 'Not available')
+    
+    # Header with system overview
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                           🚀 SYSTEM OVERVIEW                                ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    # System overview in a nice format
+    echo -e "${YELLOW}📋 Basic Information:${NC}"
+    echo -e "   🖥️  OS: ${GREEN}$OS_INFO${NC}"
+    echo -e "   🐧 Kernel: ${GREEN}$KERNEL${NC}"
+    echo -e "   🏗️  Architecture: ${GREEN}$ARCH${NC}"
+    echo -e "   🏠 Hostname: ${GREEN}$HOSTNAME${NC}"
+    echo -e "   ⏰ Uptime: ${GREEN}$UPTIME${NC}"
+    echo ""
+    
+    # Hardware status with progress bars
+    echo -e "${YELLOW}⚡ Hardware Status:${NC}"
+    echo -e "   🔥 CPU: ${GREEN}$CPU_CORES cores${NC} | Usage: ${GREEN}${CPU_USAGE}%${NC}"
+    
+    # Memory bar
+    MEMORY_USED_NUM=$(free | awk 'NR==2{printf "%.0f", $3/$2*100}')
+    MEMORY_BAR=$(printf "█%.0s" $(seq 1 $((MEMORY_USED_NUM/10))))$(printf "░%.0s" $(seq 1 $((10-MEMORY_USED_NUM/10))))
+    echo -e "   💾 Memory: ${GREEN}${MEMORY_USED}/${MEMORY_TOTAL}${NC} | ${MEMORY_BAR} ${GREEN}${MEMORY_USED_NUM}%${NC}"
+    
+    # Disk bar
+    DISK_USED_NUM=$(df / | awk 'NR==2{printf "%.0f", $3/$2*100}')
+    DISK_BAR=$(printf "█%.0s" $(seq 1 $((DISK_USED_NUM/10))))$(printf "░%.0s" $(seq 1 $((10-DISK_USED_NUM/10))))
+    echo -e "   💿 Disk: ${GREEN}${DISK_USED}/${DISK_TOTAL}${NC} | ${DISK_BAR} ${GREEN}${DISK_USED_NUM}%${NC}"
+    
+    echo -e "   📊 Load Average: ${GREEN}$LOAD_AVG${NC}"
+    echo ""
+    
+    # Network info
+    echo -e "${YELLOW}🌐 Network:${NC}"
+    echo -e "   🌍 Public IP: ${GREEN}$PUBLIC_IP${NC}"
+    echo -e "   🏠 Local IP: ${GREEN}$LOCAL_IP${NC}"
+    echo ""
+    
+    # Web Stack Status
+    echo -e "${YELLOW}🕸️  Web Stack Status:${NC}"
+    
+    # Web servers
+    if command -v nginx &> /dev/null; then
+        NGINX_VERSION=$(nginx -v 2>&1 | cut -d/ -f2 2>/dev/null || echo "Unknown")
+        NGINX_STATUS=$(systemctl is-active nginx 2>/dev/null || echo "Not found")
+        if [[ "$NGINX_STATUS" == "active" ]]; then
+            echo -e "   ✅ Nginx: ${GREEN}$NGINX_VERSION${NC} (Running)"
+        else
+            echo -e "   ❌ Nginx: ${GREEN}$NGINX_VERSION${NC} (Stopped)"
+        fi
+    else
+        echo -e "   ⚪ Nginx: Not installed"
+    fi
+    
+    if command -v apache2 &> /dev/null; then
+        APACHE_VERSION=$(apache2 -v 2>/dev/null | head -1 | cut -d: -f2 | cut -d/ -f2 2>/dev/null || echo "Unknown")
+        APACHE_STATUS=$(systemctl is-active apache2 2>/dev/null || echo "Not found")
+        if [[ "$APACHE_STATUS" == "active" ]]; then
+            echo -e "   ✅ Apache: ${GREEN}$APACHE_VERSION${NC} (Running)"
+        else
+            echo -e "   ❌ Apache: ${GREEN}$APACHE_VERSION${NC} (Stopped)"
+        fi
+    else
+        echo -e "   ⚪ Apache: Not installed"
+    fi
+    
+    # PHP versions
+    if command -v php &> /dev/null; then
+        PHP_VERSION=$(php -v 2>/dev/null | head -1 | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+        echo -e "   🐘 PHP CLI: ${GREEN}$PHP_VERSION${NC}"
+        
+        # PHP-FPM versions
+        for version in 8.3 8.2 8.1 8.0 7.4 7.3; do
+            if systemctl list-units --full --all 2>/dev/null | grep -q "php$version-fpm"; then
+                status=$(systemctl is-active "php$version-fpm" 2>/dev/null || echo "Not found")
+                if [[ "$status" == "active" ]]; then
+                    echo -e "   ✅ PHP $version-FPM: Running"
+                else
+                    echo -e "   ❌ PHP $version-FPM: Stopped"
+                fi
+            fi
+        done
+    else
+        echo -e "   ⚪ PHP: Not installed"
+    fi
+    
+    # Database
+    if command -v mysql &> /dev/null; then
+        MYSQL_VERSION=$(mysql --version 2>/dev/null | cut -d' ' -f6 | cut -d',' -f1 2>/dev/null || echo "Unknown")
+        MYSQL_STATUS=$(systemctl is-active mysql 2>/dev/null || echo "Not found")
+        if [[ "$MYSQL_STATUS" == "active" ]]; then
+            echo -e "   ✅ MySQL: ${GREEN}$MYSQL_VERSION${NC} (Running)"
+        else
+            echo -e "   ❌ MySQL: ${GREEN}$MYSQL_VERSION${NC} (Stopped)"
+        fi
+    elif command -v mariadb &> /dev/null; then
+        MARIADB_VERSION=$(mariadb --version 2>/dev/null | cut -d' ' -f6 | cut -d',' -f1 2>/dev/null || echo "Unknown")
+        MARIADB_STATUS=$(systemctl is-active mariadb 2>/dev/null || echo "Not found")
+        if [[ "$MARIADB_STATUS" == "active" ]]; then
+            echo -e "   ✅ MariaDB: ${GREEN}$MARIADB_VERSION${NC} (Running)"
+        else
+            echo -e "   ❌ MariaDB: ${GREEN}$MARIADB_VERSION${NC} (Stopped)"
+        fi
+    else
+        echo -e "   ⚪ Database: Not installed"
+    fi
+    echo ""
+    
+    # Development Tools
+    echo -e "${YELLOW}🛠️  Development Tools:${NC}"
+    
+    if command -v node &> /dev/null; then
+        NODE_VERSION=$(node --version 2>/dev/null || echo "Unknown")
+        NPM_VERSION=$(npm --version 2>/dev/null || echo "Unknown")
+        echo -e "   🟢 Node.js: ${GREEN}$NODE_VERSION${NC}"
+        echo -e "   📦 npm: ${GREEN}$NPM_VERSION${NC}"
+        
+        if command -v yarn &> /dev/null; then
+            YARN_VERSION=$(yarn --version 2>/dev/null || echo "Unknown")
+            echo -e "   🧶 Yarn: ${GREEN}$YARN_VERSION${NC}"
+        fi
+        
+        if command -v pm2 &> /dev/null; then
+            PM2_VERSION=$(pm2 --version 2>/dev/null | head -1 | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+            echo -e "   ⚡ PM2: ${GREEN}$PM2_VERSION${NC}"
+        fi
+    else
+        echo -e "   ⚪ Node.js: Not installed"
+    fi
+    
+    if command -v composer &> /dev/null; then
+        COMPOSER_VERSION=$(composer --version 2>/dev/null | cut -d' ' -f3 2>/dev/null || echo "Unknown")
+        echo -e "   🎼 Composer: ${GREEN}$COMPOSER_VERSION${NC}"
+    else
+        echo -e "   ⚪ Composer: Not installed"
+    fi
+    
+    if command -v git &> /dev/null; then
+        GIT_VERSION=$(git --version 2>/dev/null | cut -d' ' -f3 2>/dev/null || echo "Unknown")
+        echo -e "   📚 Git: ${GREEN}$GIT_VERSION${NC}"
+    else
+        echo -e "   ⚪ Git: Not installed"
+    fi
+    echo ""
+    
+    # Cache & Performance
+    echo -e "${YELLOW}⚡ Cache & Performance:${NC}"
+    
+    if command -v redis-server &> /dev/null; then
+        REDIS_VERSION=$(redis-server --version 2>/dev/null | cut -d' ' -f3 2>/dev/null || echo "Unknown")
+        REDIS_STATUS=$(systemctl is-active redis-server 2>/dev/null || echo "Not found")
+        if [[ "$REDIS_STATUS" == "active" ]]; then
+            echo -e "   ✅ Redis: ${GREEN}$REDIS_VERSION${NC} (Running)"
+        else
+            echo -e "   ❌ Redis: ${GREEN}$REDIS_VERSION${NC} (Stopped)"
+        fi
+    else
+        echo -e "   ⚪ Redis: Not installed"
+    fi
+    
+    if command -v memcached &> /dev/null; then
+        MEMCACHED_VERSION=$(memcached --version 2>/dev/null | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+        MEMCACHED_STATUS=$(systemctl is-active memcached 2>/dev/null || echo "Not found")
+        if [[ "$MEMCACHED_STATUS" == "active" ]]; then
+            echo -e "   ✅ Memcached: ${GREEN}$MEMCACHED_VERSION${NC} (Running)"
+        else
+            echo -e "   ❌ Memcached: ${GREEN}$MEMCACHED_VERSION${NC} (Stopped)"
+        fi
+    else
+        echo -e "   ⚪ Memcached: Not installed"
+    fi
+    
+    if command -v frankenphp &> /dev/null; then
+        FRANKENPHP_VERSION=$(frankenphp version 2>/dev/null | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+        FRANKENPHP_STATUS=$(systemctl is-active frankenphp 2>/dev/null || echo "Not found")
+        if [[ "$FRANKENPHP_STATUS" == "active" ]]; then
+            echo -e "   ✅ FrankenPHP: ${GREEN}$FRANKENPHP_VERSION${NC} (Running)"
+        else
+            echo -e "   ❌ FrankenPHP: ${GREEN}$FRANKENPHP_VERSION${NC} (Stopped)"
+        fi
+    else
+        echo -e "   ⚪ FrankenPHP: Not installed"
+    fi
+    echo ""
+    
+    # SSL & Security
+    echo -e "${YELLOW}🔒 SSL & Security:${NC}"
+    
+    if command -v certbot &> /dev/null; then
+        CERTBOT_VERSION=$(certbot --version 2>/dev/null | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+        echo -e "   ✅ Certbot: ${GREEN}$CERTBOT_VERSION${NC}"
+    else
+        echo -e "   ⚪ Certbot: Not installed"
+    fi
+    
+    if command -v openssl &> /dev/null; then
+        OPENSSL_VERSION=$(openssl version 2>/dev/null | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+        echo -e "   ✅ OpenSSL: ${GREEN}$OPENSSL_VERSION${NC}"
+    else
+        echo -e "   ⚪ OpenSSL: Not available"
+    fi
+    echo ""
+    
+    # Port Status
+    echo -e "${YELLOW}🔌 Port Status:${NC}"
+    HTTP_CONNS=$(ss -tuln 2>/dev/null | grep ':80 ' | wc -l 2>/dev/null || echo "0")
+    HTTPS_CONNS=$(ss -tuln 2>/dev/null | grep ':443 ' | wc -l 2>/dev/null || echo "0")
+    SSH_CONNS=$(ss -tuln 2>/dev/null | grep ':22 ' | wc -l 2>/dev/null || echo "0")
+    MYSQL_CONNS=$(ss -tuln 2>/dev/null | grep ':3306 ' | wc -l 2>/dev/null || echo "0")
+    REDIS_CONNS=$(ss -tuln 2>/dev/null | grep ':6379 ' | wc -l 2>/dev/null || echo "0")
+    
+    echo -e "   🌐 HTTP (80): ${GREEN}$HTTP_CONNS${NC} connections"
+    echo -e "   🔒 HTTPS (443): ${GREEN}$HTTPS_CONNS${NC} connections"
+    echo -e "   🔑 SSH (22): ${GREEN}$SSH_CONNS${NC} connections"
+    echo -e "   🗄️  MySQL (3306): ${GREEN}$MYSQL_CONNS${NC} connections"
+    echo -e "   🚀 Redis (6379): ${GREEN}$REDIS_CONNS${NC} connections"
+    echo ""
+    
+    # Footer
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                    📊 System information updated at $(date '+%H:%M:%S')                    ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    # Interactive menu
+    echo -e "${YELLOW}Options:${NC}"
+    echo -e "   [1] 🔄 Refresh information"
+    echo -e "   [2] 📋 Detailed service status"
+    echo -e "   [3] 🖥️  System processes"
+    echo -e "   [4] 📊 Resource usage"
+    echo -e "   [0] ↩️  Back to main menu"
+    echo ""
+    
+    read -p "Choose an option: " choice
+    
+    case $choice in
+        1)
+            show_system_info
+            ;;
+        2)
+            show_detailed_services
+            ;;
+        3)
+            show_system_processes
+            ;;
+        4)
+            show_resource_usage
+            ;;
+        0)
+            return
+            ;;
+        *)
+            echo -e "${RED}Invalid option. Press Enter to continue...${NC}"
+            read
+            show_system_info
+            ;;
+    esac
+}
+
+# Function to show detailed service status
+show_detailed_services() {
+    clear
+    print_status "🔍 DETAILED SERVICE STATUS"
+    echo ""
+    
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                              🚀 SERVICE STATUS                              ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    # All services
+    services=("nginx" "apache2" "mysql" "mariadb" "redis-server" "memcached" "frankenphp")
+    echo -e "${YELLOW}🔧 Main Services:${NC}"
+    for service in "${services[@]}"; do
+        if systemctl list-unit-files 2>/dev/null | grep -q "$service"; then
+            status=$(systemctl is-active "$service" 2>/dev/null || echo "not-found")
+            if [[ "$status" == "active" ]]; then
+                echo -e "   ✅ $service: ${GREEN}Running${NC}"
+            elif [[ "$status" == "inactive" ]]; then
+                echo -e "   ⏸️  $service: ${YELLOW}Stopped${NC}"
+            else
+                echo -e "   ❌ $service: ${RED}Not found${NC}"
+            fi
+        else
+            echo -e "   ⚪ $service: ${GRAY}Not installed${NC}"
+        fi
+    done
+    
+    echo ""
+    echo -e "${YELLOW}🐘 PHP-FPM Services:${NC}"
+    for version in 8.3 8.2 8.1 8.0 7.4 7.3; do
+        if systemctl list-unit-files 2>/dev/null | grep -q "php$version-fpm"; then
+            status=$(systemctl is-active "php$version-fpm" 2>/dev/null || echo "not-found")
+            if [[ "$status" == "active" ]]; then
+                echo -e "   ✅ PHP $version-FPM: ${GREEN}Running${NC}"
+            elif [[ "$status" == "inactive" ]]; then
+                echo -e "   ⏸️  PHP $version-FPM: ${YELLOW}Stopped${NC}"
+            else
+                echo -e "   ❌ PHP $version-FPM: ${RED}Not found${NC}"
+            fi
+        else
+            echo -e "   ⚪ PHP $version-FPM: ${GRAY}Not installed${NC}"
+        fi
+    done
+    
+    echo ""
+    echo -e "${YELLOW}Options:${NC}"
+    echo -e "   [1] ↩️  Back to system info"
+    echo -e "   [0] 🏠 Back to main menu"
+    echo ""
+    
+    read -p "Choose an option: " choice
+    
+    case $choice in
+        1)
+            show_system_info
+            ;;
+        0)
+            return
+            ;;
+        *)
+            show_detailed_services
+            ;;
+    esac
+}
+
+# Function to show system processes
+show_system_processes() {
+    clear
+    print_status "🖥️  SYSTEM PROCESSES"
+    echo ""
+    
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                            📊 TOP PROCESSES BY CPU                          ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    ps aux --sort=-%cpu | head -10 | awk 'NR==1{print "   " $0} NR>1{printf "   %-8s %-8s %-6s %-6s %-8s %-8s %-8s %-8s %-8s %-8s %s\n", $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11}'
+    
+    echo ""
+    echo -e "${YELLOW}Options:${NC}"
+    echo -e "   [1] ↩️  Back to system info"
+    echo -e "   [0] 🏠 Back to main menu"
+    echo ""
+    
+    read -p "Choose an option: " choice
+    
+    case $choice in
+        1)
+            show_system_info
+            ;;
+        0)
+            return
+            ;;
+        *)
+            show_system_processes
+            ;;
+    esac
+}
+
+# Function to show resource usage
+show_resource_usage() {
+    clear
+    print_status "📊 RESOURCE USAGE"
+    echo ""
+    
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                              💾 MEMORY USAGE                                ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    free -h
+    echo ""
+    
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                              💿 DISK USAGE                                  ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    df -h
+    echo ""
+    
+    echo -e "${YELLOW}Options:${NC}"
+    echo -e "   [1] ↩️  Back to system info"
+    echo -e "   [0] 🏠 Back to main menu"
+    echo ""
+    
+    read -p "Choose an option: " choice
+    
+    case $choice in
+        1)
+            show_system_info
+            ;;
+        0)
+            return
+            ;;
+        *)
+            show_resource_usage
+            ;;
+    esac
+}
+
 # Function to display installation summary
 show_summary() {
     print_header
@@ -536,13 +964,7 @@ show_menu() {
                 ask_continue
                 ;;
             12)
-                print_status "System Information:"
-                echo "OS: $(lsb_release -d | cut -d2)"
-                echo "Kernel: $(uname -r)"
-                echo "Architecture: $(uname -m)"
-                echo "Memory: $(free -h | awk 'NR==2{print $2}')"
-                echo "Disk: $(df -h / | awk 'NR==2{print $4}') available"
-                read -p "Press Enter to continue..."
+                show_system_info
                 ;;
             0)
                 print_status "$(get_text "GOODBYE")"

@@ -125,35 +125,185 @@ setup_monitoring() {
     cat > /usr/local/bin/system-info.sh << 'EOF'
 #!/bin/bash
 
-echo "=== System Information ==="
-echo "OS: $(lsb_release -d | cut -f2)"
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo -e "${BLUE}=== System Information ===${NC}"
+echo "OS: $(lsb_release -d | cut -d: -f2 | xargs)"
 echo "Kernel: $(uname -r)"
 echo "Architecture: $(uname -m)"
+echo "Hostname: $(hostname)"
 echo "Uptime: $(uptime -p)"
+echo "System Time: $(date)"
+echo "Timezone: $(timedatectl show --property=Timezone --value 2>/dev/null || echo 'Unknown')"
 echo ""
 
-echo "=== Memory Usage ==="
-free -h
+echo -e "${BLUE}=== Hardware Information ===${NC}"
+echo "CPU: $(nproc) cores"
+echo "Memory: $(free -h | awk 'NR==2{print $2}') total, $(free -h | awk 'NR==2{print $3}') used, $(free -h | awk 'NR==2{print $4}') free"
+echo "Swap: $(free -h | awk 'NR==3{print $2}') total, $(free -h | awk 'NR==3{print $3}') used, $(free -h | awk 'NR==3{print $4}') free"
+echo "Disk: $(df -h / | awk 'NR==2{print $2}') total, $(df -h / | awk 'NR==2{print $3}') used, $(df -h / | awk 'NR==2{print $4}') available"
+echo "Disk Usage: $(df -h / | awk 'NR==2{print $5}') used"
+echo "Load Average: $(uptime | awk -F'load average:' '{print $2}')"
+echo "CPU Usage: $(top -bn1 2>/dev/null | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 2>/dev/null || echo "Unknown")%"
 echo ""
 
-echo "=== Disk Usage ==="
-df -h
+echo -e "${BLUE}=== Web Server Information ===${NC}"
+if command -v nginx &> /dev/null; then
+    nginx_version=$(nginx -v 2>&1 | cut -d/ -f2 2>/dev/null || echo "Unknown")
+    echo "Nginx: $nginx_version"
+    echo "Nginx Status: $(systemctl is-active nginx 2>/dev/null || echo 'Not found')"
+else
+    echo "Nginx: Not installed"
+fi
+
+if command -v apache2 &> /dev/null; then
+    apache_version=$(apache2 -v 2>/dev/null | head -1 | cut -d: -f2 | cut -d/ -f2 2>/dev/null || echo "Unknown")
+    echo "Apache: $apache_version"
+    echo "Apache Status: $(systemctl is-active apache2 2>/dev/null || echo 'Not found')"
+else
+    echo "Apache: Not installed"
+fi
 echo ""
 
-echo "=== Load Average ==="
-uptime
+echo -e "${BLUE}=== PHP Information ===${NC}"
+if command -v php &> /dev/null; then
+    php_version=$(php -v 2>/dev/null | head -1 | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+    echo "PHP CLI: $php_version"
+    
+    # Check for PHP-FPM versions
+    for version in 8.3 8.2 8.1 8.0 7.4 7.3; do
+        if systemctl list-units --full --all 2>/dev/null | grep -q "php$version-fpm"; then
+            status=$(systemctl is-active "php$version-fpm" 2>/dev/null || echo "Not found")
+            echo "PHP $version-FPM: $status"
+        fi
+    done
+else
+    echo "PHP: Not installed"
+fi
 echo ""
 
-echo "=== Top Processes ==="
-ps aux --sort=-%cpu | head -10
+echo -e "${BLUE}=== Database Information ===${NC}"
+if command -v mysql &> /dev/null; then
+    mysql_version=$(mysql --version 2>/dev/null | cut -d' ' -f6 | cut -d',' -f1 2>/dev/null || echo "Unknown")
+    echo "MySQL: $mysql_version"
+    echo "MySQL Status: $(systemctl is-active mysql 2>/dev/null || echo 'Not found')"
+elif command -v mariadb &> /dev/null; then
+    mariadb_version=$(mariadb --version 2>/dev/null | cut -d' ' -f6 | cut -d',' -f1 2>/dev/null || echo "Unknown")
+    echo "MariaDB: $mariadb_version"
+    echo "MariaDB Status: $(systemctl is-active mariadb 2>/dev/null || echo 'Not found')"
+else
+    echo "Database: Not installed"
+fi
 echo ""
 
-echo "=== Network Connections ==="
-ss -tuln | grep LISTEN
+echo -e "${BLUE}=== Node.js Information ===${NC}"
+if command -v node &> /dev/null; then
+    node_version=$(node --version 2>/dev/null || echo "Unknown")
+    echo "Node.js: $node_version"
+    npm_version=$(npm --version 2>/dev/null || echo "Unknown")
+    echo "npm: $npm_version"
+    if command -v yarn &> /dev/null; then
+        yarn_version=$(yarn --version 2>/dev/null || echo "Unknown")
+        echo "Yarn: $yarn_version"
+    fi
+    if command -v pm2 &> /dev/null; then
+        pm2_version=$(pm2 --version 2>/dev/null | head -1 | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+        echo "PM2: $pm2_version"
+    fi
+else
+    echo "Node.js: Not installed"
+fi
+
+if command -v composer &> /dev/null; then
+    composer_version=$(composer --version 2>/dev/null | cut -d' ' -f3 2>/dev/null || echo "Unknown")
+    echo "Composer: $composer_version"
+else
+    echo "Composer: Not installed"
+fi
+
+if command -v git &> /dev/null; then
+    git_version=$(git --version 2>/dev/null | cut -d' ' -f3 2>/dev/null || echo "Unknown")
+    echo "Git: $git_version"
+else
+    echo "Git: Not installed"
+fi
 echo ""
 
-echo "=== Service Status ==="
-systemctl is-active nginx php8.2-fpm mysql redis-server
+echo -e "${BLUE}=== Cache & Performance ===${NC}"
+if command -v redis-server &> /dev/null; then
+    redis_version=$(redis-server --version 2>/dev/null | cut -d' ' -f3 2>/dev/null || echo "Unknown")
+    echo "Redis: $redis_version"
+    echo "Redis Status: $(systemctl is-active redis-server 2>/dev/null || echo 'Not found')"
+else
+    echo "Redis: Not installed"
+fi
+
+if command -v memcached &> /dev/null; then
+    memcached_version=$(memcached --version 2>/dev/null | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+    echo "Memcached: $memcached_version"
+    echo "Memcached Status: $(systemctl is-active memcached 2>/dev/null || echo 'Not found')"
+fi
+
+if command -v frankenphp &> /dev/null; then
+    frankenphp_version=$(frankenphp version 2>/dev/null | cut -d' ' -f2 2>/dev/null || echo "Unknown")
+    echo "FrankenPHP: $frankenphp_version"
+    echo "FrankenPHP Status: $(systemctl is-active frankenphp 2>/dev/null || echo 'Not found')"
+else
+    echo "FrankenPHP: Not installed"
+fi
+echo ""
+
+# Port Information
+echo -e "${BLUE}=== Port Information ===${NC}"
+echo "HTTP (80): $(ss -tuln 2>/dev/null | grep ':80 ' | wc -l 2>/dev/null || echo "0") connections"
+echo "HTTPS (443): $(ss -tuln 2>/dev/null | grep ':443 ' | wc -l 2>/dev/null || echo "0") connections"
+echo "SSH (22): $(ss -tuln 2>/dev/null | grep ':22 ' | wc -l 2>/dev/null || echo "0") connections"
+echo "MySQL (3306): $(ss -tuln 2>/dev/null | grep ':3306 ' | wc -l 2>/dev/null || echo "0") connections"
+echo "Redis (6379): $(ss -tuln 2>/dev/null | grep ':6379 ' | wc -l 2>/dev/null || echo "0") connections"
+echo ""
+
+# Kernel Information
+echo -e "${BLUE}=== Kernel Information ===${NC}"
+echo "Kernel Version: $(uname -r)"
+echo "Kernel Architecture: $(uname -m)"
+echo "Kernel Command Line: $(cat /proc/cmdline 2>/dev/null | cut -c1-80)..."
+echo ""
+
+echo -e "${BLUE}=== Service Status Summary ===${NC}"
+services=("nginx" "apache2" "mysql" "mariadb" "redis-server" "memcached" "frankenphp")
+for service in "${services[@]}"; do
+    if systemctl list-unit-files 2>/dev/null | grep -q "$service"; then
+        status=$(systemctl is-active "$service" 2>/dev/null || echo "not-found")
+        if [[ "$status" == "active" ]]; then
+            echo -e "${GREEN}✅ $service: Running${NC}"
+        elif [[ "$status" == "inactive" ]]; then
+            echo -e "${YELLOW}⏸️  $service: Stopped${NC}"
+        else
+            echo -e "${RED}❌ $service: Not found${NC}"
+        fi
+    fi
+done
+
+# PHP-FPM Services
+echo ""
+echo -e "${BLUE}=== PHP-FPM Services ===${NC}"
+for version in 8.3 8.2 8.1 8.0 7.4 7.3; do
+    if systemctl list-unit-files 2>/dev/null | grep -q "php$version-fpm"; then
+        status=$(systemctl is-active "php$version-fpm" 2>/dev/null || echo "not-found")
+        if [[ "$status" == "active" ]]; then
+            echo -e "${GREEN}✅ PHP $version-FPM: Running${NC}"
+        elif [[ "$status" == "inactive" ]]; then
+            echo -e "${YELLOW}⏸️  PHP $version-FPM: Stopped${NC}"
+        else
+            echo -e "${RED}❌ PHP $version-FPM: Not found${NC}"
+        fi
+    fi
+done
 EOF
     
     chmod +x /usr/local/bin/system-info.sh

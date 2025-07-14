@@ -1,296 +1,468 @@
-# 🚀 Debian VPS Web Stack Installer
+# 🚀 VPS Debian Installer
 
-> **Skrip modular otomatis untuk setup lengkap stack web pada VPS Debian**
+**Installer otomatis untuk VPS berbasis Debian dengan stack web lengkap**
 
-[![Debian](https://img.shields.io/badge/Debian-10%2F11%2F12-A81D33?style=flat&logo=debian)](https://www.debian.org/)
-[![PHP](https://img.shields.io/badge/PHP-8.0--8.3-777BB4?style=flat&logo=php)](https://php.net/)
-[![Nginx](https://img.shields.io/badge/Nginx-Latest-009639?style=flat&logo=nginx)](https://nginx.org/)
-[![WordPress](https://img.shields.io/badge/WordPress-Ready-21759B?style=flat&logo=wordpress)](https://wordpress.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform: Debian](https://img.shields.io/badge/Platform-Debian%20Based-blue.svg)](https://www.debian.org/)
+[![Shell: Bash](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
 
-## 📋 Daftar Isi
+## 📋 Deskripsi
 
-- [🎯 Tentang Proyek](#-tentang-proyek)
-- [✨ Fitur Utama](#-fitur-utama)
-- [📋 Persyaratan Sistem](#-persyaratan-sistem)
-- [🚀 Cara Instalasi](#-cara-instalasi)
-- [📁 Struktur Proyek](#-struktur-proyek)
-- [⚙️ Konfigurasi](#️-konfigurasi)
-- [🔒 Keamanan](#-keamanan)
-- [🛠️ Troubleshooting](#️-troubleshooting)
-- [📝 Changelog](#-changelog)
-- [🤝 Kontribusi](#-kontribusi)
-- [⚠️ Disclaimer](#️-disclaimer)
-
-## 🎯 Tentang Proyek
-
-**Debian VPS Web Stack Installer** adalah kumpulan skrip bash modular yang dirancang untuk mengotomatisasi proses instalasi dan konfigurasi lengkap stack web modern pada VPS berbasis Debian. Dengan tool ini, Anda dapat setup server web production-ready dalam hitungan menit.
-
-### 🎯 Tujuan Utama
-
-- ⚡ **Total Automation**: Setup web server tanpa intervensi manual
-- 🧩 **Modular Design**: Komponen terpisah untuk fleksibilitas maksimal
-- 🔒 **Security First**: Konfigurasi keamanan best practices
-- 📈 **Performance Optimized**: Server tuning untuk performa optimal
-- 🛠️ **Easy Maintenance**: Struktur yang mudah dipelihara dan diupdate
+VPS Debian Installer adalah script installer otomatis yang dirancang untuk menginstal dan mengkonfigurasi stack web lengkap pada VPS berbasis Debian. Script ini mendukung semua distribusi Linux yang menggunakan APT sebagai package manager (Debian, Ubuntu, Linux Mint, Pop!_OS, dll).
 
 ## ✨ Fitur Utama
 
-### 🌐 Web Stack Components
-- ✅ **PHP 8.0-8.3** dengan ekstensi lengkap (OPcache, Redis, msgpack, igbinary)
-- ✅ **Nginx** web server dengan konfigurasi optimal
-- ✅ **MariaDB/MySQL** database server
-- ✅ **Node.js** runtime environment
-- ✅ **FrankenPHP** untuk performa PHP yang lebih baik
+### 🌐 **Web Stack Lengkap**
+- **Nginx** - Web server berperforma tinggi
+- **Apache2** - Web server tradisional (opsional)
+- **PHP** - Versi 8.3, 8.2, 8.1, 8.0, 7.4, 7.3 dengan FPM
+- **MySQL/MariaDB** - Database server
+- **Redis** - Cache dan session storage
+- **Memcached** - Memory caching
 
-### 🎨 Web Applications
-- ✅ **WordPress** instalasi otomatis dengan konfigurasi database
-- ✅ **phpMyAdmin** dengan nama folder acak untuk keamanan
-- ✅ **Web App Support**: Laravel, React/Vue.js, PHP Native
+### 🛠️ **Development Tools**
+- **Node.js** - Runtime JavaScript
+- **npm & Yarn** - Package managers
+- **PM2** - Process manager untuk Node.js
+- **Composer** - Dependency manager PHP
+- **Git** - Version control system
 
-### 🔒 Security & SSL
-- ✅ **SSL/TLS** otomatis via Let's Encrypt (Certbot)
-- ✅ **Domain Validation** dengan DNS A record detection
-- ✅ **Security Hardening** untuk Nginx dan PHP
-- ✅ **Random phpMyAdmin folder** untuk mencegah brute force
+### 🔒 **Security & SSL**
+- **Let's Encrypt/Certbot** - SSL certificates gratis
+- **OpenSSL** - Cryptographic library
+- **UFW Firewall** - Firewall configuration
+- **Security hardening** - Optimasi keamanan
 
-### ⚡ Performance & Optimization
-- ✅ **Server Tuning** (sysctl optimization)
-- ✅ **Caching Layers** (Redis, OPcache, msgpack, igbinary)
-- ✅ **Backup System** (database & system backup)
-- ✅ **Server Monitoring** tools
+### ⚡ **Performance & Optimization**
+- **FrankenPHP** - PHP runtime berperforma tinggi
+- **OPcache** - PHP bytecode caching
+- **Redis caching** - Session dan cache storage
+- **Nginx optimization** - Konfigurasi performa
+- **System tuning** - Optimasi kernel dan sistem
 
-## 📋 Persyaratan Sistem
+### 📱 **CMS & Applications**
+- **WordPress** - CMS populer
+- **phpMyAdmin** - Database management
+- **Custom web applications** - Dukungan aplikasi kustom
 
-### 💻 Hardware Minimum
-- **RAM**: 1GB (2GB recommended)
-- **Storage**: 10GB free space
-- **CPU**: 1 core (2 cores recommended)
+### 🖥️ **System Monitoring**
+- **Interactive System Dashboard** - Informasi sistem real-time dengan UI yang menarik
+- **Service Status Monitoring** - Status semua services dengan emoji
+- **Resource Usage Tracking** - Monitoring CPU, memory, disk
+- **Process Monitoring** - Top processes by CPU usage
+- **Port Status** - Monitoring koneksi port
+- **Automated Backups** - Backup otomatis harian
 
-### 🖥️ Software Requirements
-- **OS**: Debian 10 (Buster), 11 (Bullseye), atau 12 (Bookworm)
-- **Access**: Root privileges (sudo atau root user)
-- **Network**: Koneksi internet stabil
-- **Domain**: Domain/subdomain aktif dengan DNS A record mengarah ke IP VPS
+## 🎯 **Kompatibilitas**
 
-### 🌐 Domain Setup
-Sebelum menjalankan installer, pastikan:
-1. Domain/subdomain sudah aktif
-2. DNS A record mengarah ke IP VPS
-3. Port 80 dan 443 terbuka di firewall
+### ✅ **Distribusi yang Didukung**
+- **Debian** (11, 12, 13)
+- **Ubuntu** (20.04, 22.04, 24.04)
+- **Linux Mint** (20, 21, 22)
+- **Pop!_OS** (20.04, 22.04, 24.04)
+- **Elementary OS** (6, 7)
+- **Zorin OS** (16, 17)
+- **Kali Linux** (2023, 2024)
+- **Parrot OS** (5.x)
+- **MX Linux** (21, 23)
+- **Dan semua distribusi berbasis Debian lainnya**
 
-## 🚀 Cara Instalasi
+### 🔧 **Requirements**
+- Sistem operasi berbasis Debian dengan APT
+- Akses root atau sudo privileges
+- Koneksi internet stabil
+- Minimal 1GB RAM (2GB recommended)
+- Minimal 10GB disk space
 
-### 📥 Download & Setup
+## 🚀 **Instalasi**
 
+### **Metode 1: Download & Install**
 ```bash
-# 1. Clone repository
-git clone https://github.com/yourusername/vpsdebianinstaller.git
-cd vpsdebianinstaller
+# Download script
+wget https://raw.githubusercontent.com/yourusername/vpsdebianinstaller/main/install.sh
 
-# 2. Berikan permission execute
+# Berikan permission execute
 chmod +x install.sh
 
-# 3. Jalankan installer
-./install.sh
+# Jalankan installer
+sudo ./install.sh
 ```
 
-### 🎯 Quick Start
-
+### **Metode 2: Clone Repository**
 ```bash
-# Install dengan satu command
-curl -sSL https://raw.githubusercontent.com/yourusername/vpsdebianinstaller/main/install.sh | bash
+# Clone repository
+git clone https://github.com/yourusername/vpsdebianinstaller.git
+
+# Masuk ke direktori
+cd vpsdebianinstaller
+
+# Jalankan installer
+sudo ./install.sh
 ```
 
-### 📋 Langkah-langkah Instalasi
+### **Metode 3: One-liner**
+```bash
+curl -sSL https://raw.githubusercontent.com/yourusername/vpsdebianinstaller/main/install.sh | sudo bash
+```
 
-1. **System Update**: Update dan upgrade sistem Debian
-2. **PHP Installation**: Pilih versi PHP (8.0-8.3) dan extensions
-3. **Web Server**: Install dan konfigurasi Nginx
-4. **Database**: Setup MariaDB/MySQL
-5. **Applications**: Install WordPress dan phpMyAdmin
-6. **SSL Setup**: Konfigurasi SSL dengan Let's Encrypt
-7. **Optimization**: Server tuning dan caching
-8. **Security**: Security hardening dan backup setup
+## 📖 **Cara Penggunaan**
 
-## 📁 Struktur Proyek
+### **1. Menu Utama**
+Setelah menjalankan script, Anda akan melihat menu utama dengan opsi:
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        🚀 VPS DEBIAN INSTALLER                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+[1]  🐘 Install PHP (8.3, 8.2, 8.1, 8.0, 7.4, 7.3)
+[2]  🌐 Install Nginx
+[3]  🗄️  Install Database (MySQL/MariaDB)
+[4]  🟢 Install Node.js & npm
+[5]  ⚡ Install FrankenPHP
+[6]  📱 Install WordPress
+[7]  🗂️  Install phpMyAdmin
+[8]  🔒 Install SSL (Let's Encrypt)
+[9]  ⚙️  Configure Web Application
+[10] 🚀 Server Optimization & Tune-up
+[11] 🔧 System Maintenance
+[12] 📊 System Information Dashboard
+[0]  🚪 Exit
+
+Choose an option:
+```
+
+### **2. System Information Dashboard**
+Fitur baru yang interaktif dan menarik:
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           🚀 SYSTEM OVERVIEW                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 Basic Information:
+   🖥️  OS: Ubuntu 22.04.3 LTS
+   🐧 Kernel: 5.15.0-88-generic
+   🏗️  Architecture: x86_64
+   🏠 Hostname: server.example.com
+   ⏰ Uptime: up 5 days, 3 hours, 45 minutes
+
+⚡ Hardware Status:
+   🔥 CPU: 4 cores | Usage: 12%
+   💾 Memory: 1.2G/2.0G | ████████░░ 60%
+   💿 Disk: 8.5G/20G | ███████░░░ 42%
+   📊 Load Average: 0.15, 0.12, 0.08
+
+🌐 Network:
+   🌍 Public IP: 203.0.113.1
+   🏠 Local IP: 192.168.1.100
+
+🕸️  Web Stack Status:
+   ✅ Nginx: 1.18.0 (Running)
+   🐘 PHP CLI: 8.2.15
+   ✅ PHP 8.2-FPM: Running
+   ✅ MySQL: 8.0.35 (Running)
+   ✅ Redis: 7.0.15 (Running)
+
+🛠️  Development Tools:
+   🟢 Node.js: v18.19.0
+   📦 npm: 9.8.1
+   🎼 Composer: 2.6.5
+   📚 Git: 2.34.1
+
+Options:
+   [1] 🔄 Refresh information
+   [2] 📋 Detailed service status
+   [3] 🖥️  System processes
+   [4] 📊 Resource usage
+   [0] ↩️  Back to main menu
+```
+
+## 📁 **Struktur Project**
 
 ```
 vpsdebianinstaller/
-├── 📄 install.sh              # Menu utama installer
-├── 📁 modules/                # Skrip modular
-│   ├── 🔧 install_php.sh      # PHP installation & configuration
-│   ├── 🌐 install_nginx.sh    # Nginx web server setup
-│   ├── 🗄️ install_wp.sh      # WordPress installation
-│   ├── 📊 install_pma.sh      # phpMyAdmin setup
-│   ├── ⚙️ configure_webapp.sh # Web app configuration
-│   └── 🚀 tuneup.sh          # Server optimization
-├── 📄 README.md              # Dokumentasi ini
-└── 📄 .gitignore            # Git ignore rules
+├── install.sh                 # Script utama installer
+├── modules/                   # Modul-modul installer
+│   ├── install_php.sh        # Installer PHP
+│   ├── install_nginx.sh      # Installer Nginx
+│   ├── install_database.sh   # Installer Database
+│   ├── install_nodejs.sh     # Installer Node.js
+│   ├── install_frankenphp.sh # Installer FrankenPHP
+│   ├── install_wp.sh         # Installer WordPress
+│   ├── install_pma.sh        # Installer phpMyAdmin
+│   ├── install_ssl.sh        # Installer SSL
+│   ├── configure_webapp.sh   # Konfigurasi web app
+│   └── tuneup.sh             # Optimasi server
+├── languages/                 # File bahasa
+│   ├── en.sh                 # English
+│   └── id.sh                 # Indonesian
+└── README.md                 # Dokumentasi
 ```
 
-### 🔧 Module Descriptions
+## ⚙️ **Konfigurasi**
 
-| Module | Description | Dependencies |
-|--------|-------------|--------------|
-| `install_php.sh` | PHP installation dengan extensions lengkap | - |
-| `install_nginx.sh` | Nginx web server + security configuration | PHP |
-| `install_wp.sh` | WordPress + database setup | PHP, Nginx, MySQL |
-| `install_pma.sh` | phpMyAdmin dengan security | PHP, Nginx, MySQL |
-| `configure_webapp.sh` | Web app deployment configuration | PHP, Nginx |
-| `tuneup.sh` | Server optimization & caching | All modules |
-
-## ⚙️ Konfigurasi
-
-### 🌐 Web Application Types
-
-Installer mendukung berbagai jenis web application:
-
-| Type | Document Root | Use Case |
-|------|---------------|----------|
-| **Laravel** | `/public` | Laravel applications |
-| **React/Vue** | `/dist` | Single Page Applications (SPA) |
-| **PHP Native** | `/` | Traditional PHP websites |
-| **WordPress** | `/` | WordPress sites |
-
-### 🔧 PHP Configuration
-
-- **Versions**: 8.0, 8.1, 8.2, 8.3
-- **Extensions**: OPcache, Redis, msgpack, igbinary, mysqli, pdo_mysql
-- **Settings**: Production-optimized configuration
-
-### 🗄️ Database Setup
-
-- **MariaDB/MySQL** dengan secure configuration
-- **Database creation** otomatis untuk WordPress
-- **User management** dengan minimal privileges
-
-## 🔒 Keamanan
-
-### 🛡️ Security Features
-
-- **Random phpMyAdmin folder** untuk mencegah brute force attacks
-- **Nginx configuration validation** sebelum deployment
-- **DNS validation** untuk SSL certificate setup
-- **Firewall rules** untuk port management
-- **PHP security settings** (disable dangerous functions)
-
-### 🔐 SSL/TLS Configuration
-
-- **Let's Encrypt** certificates otomatis
-- **Domain validation** dengan DNS checks
-- **Auto-renewal** setup
-- **HTTP to HTTPS** redirect
-
-### 🚫 Security Hardening
-
-- **Nginx security headers**
-- **PHP security settings**
-- **Database user privileges**
-- **File permissions** optimal
-
-## 🛠️ Troubleshooting
-
-### ❌ Common Issues
-
-#### 1. DNS Resolution Error
+### **Environment Variables**
 ```bash
-# Check DNS records
-dig yourdomain.com A
-nslookup yourdomain.com
+# PHP Version (default: 8.2)
+PHP_VERSION=8.2
+
+# Database Type (mysql/mariadb)
+DB_TYPE=mysql
+
+# Domain Name
+DOMAIN=example.com
+
+# Database Credentials
+DB_NAME=wordpress
+DB_USER=wp_user
+DB_PASS=secure_password
 ```
 
-#### 2. SSL Certificate Issues
+### **Custom Configuration**
+Setiap modul dapat dikonfigurasi secara terpisah:
+
 ```bash
-# Test SSL configuration
-certbot certificates
-nginx -t
+# PHP Configuration
+sudo nano /etc/php/8.2/fpm/php.ini
+
+# Nginx Configuration
+sudo nano /etc/nginx/sites-available/default
+
+# MySQL Configuration
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
 ```
 
-#### 3. PHP Configuration Problems
-```bash
-# Check PHP status
-php -v
-php -m | grep -E "(opcache|redis|msgpack)"
-```
+## 🔒 **Security Features**
 
-#### 4. Database Connection Issues
-```bash
-# Test MySQL connection
-mysql -u root -p -e "SHOW DATABASES;"
-```
+### **Firewall Configuration**
+- UFW firewall dengan rules yang aman
+- Port 22 (SSH), 80 (HTTP), 443 (HTTPS) terbuka
+- Semua port lain tertutup secara default
 
-### 🔍 Debug Commands
+### **SSL/TLS Security**
+- Let's Encrypt certificates otomatis
+- Auto-renewal certificates
+- HSTS headers
+- Modern SSL configuration
 
+### **System Hardening**
+- Disable root login SSH
+- Change default SSH port (opsional)
+- Fail2ban protection
+- Regular security updates
+
+## 📊 **Monitoring & Maintenance**
+
+### **System Information Dashboard**
+- Real-time system monitoring
+- Interactive UI dengan emoji dan warna
+- Progress bars untuk resource usage
+- Service status dengan indikator visual
+- Port monitoring
+- Process monitoring
+
+### **Automated Maintenance**
+- Daily system backups
+- Log rotation
+- Security updates
+- Performance monitoring
+
+### **Manual Maintenance Commands**
 ```bash
+# System information
+/usr/local/bin/system-info.sh
+
+# Backup system
+/usr/local/bin/backup-system.sh
+
 # Check service status
-systemctl status nginx php8.2-fpm mysql
+systemctl status nginx php8.2-fpm mysql redis-server
 
 # View logs
 tail -f /var/log/nginx/error.log
 tail -f /var/log/php8.2-fpm.log
-
-# Test configuration
-nginx -t
-php-fpm8.2 -t
 ```
 
-## 📝 Changelog
+## 🐛 **Troubleshooting**
 
-### Version 1.0.0 (Current)
-- ✅ Initial release
-- ✅ PHP 8.0-8.3 support
-- ✅ WordPress & phpMyAdmin installation
-- ✅ SSL automation
-- ✅ Server optimization
+### **Common Issues**
 
-### Planned Features
-- 🔄 Docker support
-- 🔄 Multi-site setup
-- 🔄 Backup automation
-- 🔄 Monitoring integration
+#### **1. PHP-FPM tidak berjalan**
+```bash
+# Check status
+sudo systemctl status php8.2-fpm
 
-## 🤝 Kontribusi
+# Restart service
+sudo systemctl restart php8.2-fpm
 
-Kontribusi sangat dihargai! Berikut cara berkontribusi:
+# Check configuration
+sudo php-fpm8.2 -t
+```
 
-1. **Fork** repository ini
-2. **Create** feature branch (`git checkout -b feature/AmazingFeature`)
-3. **Commit** perubahan (`git commit -m 'Add AmazingFeature'`)
-4. **Push** ke branch (`git push origin feature/AmazingFeature`)
-5. **Open** Pull Request
+#### **2. Nginx error**
+```bash
+# Check configuration
+sudo nginx -t
 
-### 📋 Coding Standards
+# Check error logs
+sudo tail -f /var/log/nginx/error.log
 
-- Gunakan **bash** untuk semua scripts
-- Tambahkan **comments** yang jelas
-- Test di **Debian 11** minimal
-- Update **documentation** jika ada perubahan
+# Restart Nginx
+sudo systemctl restart nginx
+```
 
-## ⚠️ Disclaimer
+#### **3. Database connection error**
+```bash
+# Check MySQL status
+sudo systemctl status mysql
 
-### 🚨 Important Notes
+# Reset MySQL root password
+sudo mysql_secure_installation
 
-- **Development Use**: Gunakan di development environment atau private server
-- **Backup First**: Selalu backup sistem sebelum menjalankan installer
-- **Testing**: Test di separate environment sebelum production
-- **Updates**: Regularly update sistem dan aplikasi
+# Check MySQL logs
+sudo tail -f /var/log/mysql/error.log
+```
 
-### 📞 Support
+#### **4. SSL certificate issues**
+```bash
+# Check certificate status
+sudo certbot certificates
 
-Jika mengalami masalah:
+# Renew certificates
+sudo certbot renew
 
-1. **Check** troubleshooting section
-2. **Search** existing issues
-3. **Create** new issue dengan complete details
-4. **Include** system information dan error logs
+# Check SSL configuration
+sudo nginx -t
+```
+
+### **Log Files Location**
+```bash
+# Nginx logs
+/var/log/nginx/access.log
+/var/log/nginx/error.log
+
+# PHP-FPM logs
+/var/log/php8.2-fpm.log
+
+# MySQL logs
+/var/log/mysql/error.log
+
+# System logs
+/var/log/syslog
+/var/log/auth.log
+```
+
+## 📈 **Performance Optimization**
+
+### **Nginx Optimization**
+- Worker processes sesuai CPU cores
+- Connection pooling
+- Gzip compression
+- Browser caching
+
+### **PHP Optimization**
+- OPcache enabled
+- Memory limit optimization
+- Max execution time tuning
+- File upload limits
+
+### **Database Optimization**
+- InnoDB buffer pool
+- Query cache
+- Connection pooling
+- Index optimization
+
+### **System Optimization**
+- Kernel parameters tuning
+- Swap optimization
+- File descriptor limits
+- Process limits
+
+## 🔄 **Updates & Maintenance**
+
+### **Regular Updates**
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Update PHP packages
+sudo apt update && sudo apt upgrade php8.2-* -y
+
+# Update Nginx
+sudo apt update && sudo apt upgrade nginx -y
+```
+
+### **Backup Strategy**
+- Daily automated backups
+- Database dumps
+- Configuration backups
+- Web files backup
+- 7-day retention policy
+
+## 🤝 **Contributing**
+
+Kontribusi sangat dihargai! Silakan:
+
+1. Fork repository ini
+2. Buat branch fitur baru (`git checkout -b feature/AmazingFeature`)
+3. Commit perubahan (`git commit -m 'Add some AmazingFeature'`)
+4. Push ke branch (`git push origin feature/AmazingFeature`)
+5. Buat Pull Request
+
+### **Development Guidelines**
+- Gunakan bash scripting best practices
+- Tambahkan komentar yang jelas
+- Test pada berbagai distribusi Debian
+- Update dokumentasi sesuai perubahan
+
+## 📝 **Changelog**
+
+### **v2.0.0** (2024-01-15)
+- ✨ **NEW**: Interactive System Information Dashboard
+- ✨ **NEW**: Support for all Debian-based distributions
+- ✨ **NEW**: Visual progress bars dan emoji indicators
+- ✨ **NEW**: Multi-language support (EN/ID)
+- ✨ **NEW**: FrankenPHP integration
+- ✨ **NEW**: Advanced monitoring features
+- 🔧 **IMPROVED**: Error handling dan user experience
+- 🔧 **IMPROVED**: Modular architecture
+- 🐛 **FIXED**: System information display issues
+
+### **v1.5.0** (2024-01-10)
+- ✨ **NEW**: Node.js dan npm support
+- ✨ **NEW**: Redis caching
+- ✨ **NEW**: SSL automation
+- 🔧 **IMPROVED**: PHP version management
+- 🔧 **IMPROVED**: Database installation
+
+### **v1.0.0** (2024-01-01)
+- 🎉 **INITIAL RELEASE**
+- Basic web stack installation
+- WordPress dan phpMyAdmin support
+- Basic security features
+
+## 📄 **License**
+
+Project ini dilisensikan di bawah MIT License - lihat file [LICENSE](LICENSE) untuk detail.
+
+## 🙏 **Acknowledgments**
+
+- [Debian Project](https://www.debian.org/) - Sistem operasi dasar
+- [Nginx](https://nginx.org/) - Web server
+- [PHP](https://www.php.net/) - Programming language
+- [MySQL](https://www.mysql.com/) - Database server
+- [Let's Encrypt](https://letsencrypt.org/) - SSL certificates
+- [WordPress](https://wordpress.org/) - CMS platform
+
+## 📞 **Support**
+
+Jika Anda mengalami masalah atau memiliki pertanyaan:
+
+- 📧 **Email**: rival.biasrori@gmail.com
+- 📖 **Documentation**: [Wiki](https://github.com/yourusername/vpsdebianinstaller/wiki)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/vpsdebianinstaller/issues)
 
 ---
 
-<div align="center">
-
-**Made with ❤️ for Debian VPS users**
-
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/vpsdebianinstaller?style=social)](https://github.com/yourusername/vpsdebianinstaller)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/vpsdebianinstaller?style=social)](https://github.com/yourusername/vpsdebianinstaller)
-
-</div>
+**⭐ Jika project ini membantu Anda, jangan lupa untuk memberikan star! ⭐**
