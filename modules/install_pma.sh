@@ -3,7 +3,7 @@
 # =============================================================================
 # phpMyAdmin Installation Module
 # =============================================================================
-# Instalasi phpMyAdmin dengan nama folder acak untuk keamanan
+# Instalasi phpMyAdmin dengan opsi nama folder dan domain/subdomain
 # =============================================================================
 
 # Colors
@@ -24,11 +24,25 @@ print_warning() {
     echo -e "${YELLOW}[PHPMYADMIN WARNING]${NC} $1"
 }
 
+# Function to cleanup on error
+cleanup_installation() {
+    local folder=$1
+    print_warning "Cleaning up installation..."
+    rm -rf "/var/www/$folder"
+    rm -f "/etc/nginx/sites-enabled/phpmyadmin"
+    rm -f "/etc/nginx/sites-available/phpmyadmin"
+    print_status "Cleanup completed."
+}
+
 install_phpmyadmin() {
-    local domain=${1:-localhost}
-    local php_version=${2:-8.2}
+    local php_version=${1:-8.2}
+    local TEMP_FOLDER="pma_temp"
+    local PMA_FOLDER=""
+    local DOMAIN_TYPE=""
+    local DOMAIN=""
+    local PMA_URL=""
     
-    print_status "Installing phpMyAdmin..."
+    print_status "Starting phpMyAdmin Installation..."
     
     # Check dependencies
     print_status "Checking dependencies..."
@@ -57,55 +71,81 @@ install_phpmyadmin() {
         exit 1
     fi
     
-    # Generate random folder name
-    print_status "Generating secure folder name..."
-    echo "🔐 Generating random folder name for security..."
-    PMA_FOLDER="pma_$(openssl rand -hex 8)"
-    
-    # Create phpMyAdmin directory
-    print_status "Creating phpMyAdmin directory..."
-    echo "📁 Creating directory: /var/www/$PMA_FOLDER"
-    mkdir -p /var/www/$PMA_FOLDER
+    # Create temporary phpMyAdmin directory
+    print_status "Creating temporary phpMyAdmin directory..."
+    mkdir -p /var/www/$TEMP_FOLDER
     
     # Download phpMyAdmin
-    cd /var/www/$PMA_FOLDER
-    print_status "Downloading phpMyAdmin..."
-    echo "⬇️  Downloading latest phpMyAdmin..."
+    cd /var/www/$TEMP_FOLDER
+    print_status "Downloading latest phpMyAdmin..."
     
-    # Try multiple download methods
+    # Try multiple download methods with file validation
     DOWNLOAD_SUCCESS=false
     
-    # Method 1: Direct wget
-    echo "🔄 Trying direct download..."
-    if wget -q --timeout=30 --tries=3 https://files.phpmyadmin.net/phpMyAdmin/latest/phpMyAdmin-latest-all-languages.tar.gz; then
-        DOWNLOAD_SUCCESS=true
-        echo "✅ Download successful via direct method"
-    else
-        echo "❌ Direct download failed, trying alternative methods..."
-        
-        # Method 2: Try with curl
-        echo "🔄 Trying with curl..."
-        if curl -L -o phpMyAdmin-latest-all-languages.tar.gz --connect-timeout 30 --max-time 300 https://files.phpmyadmin.net/phpMyAdmin/latest/phpMyAdmin-latest-all-languages.tar.gz; then
+    # Function to validate downloaded file
+    validate_file() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            # Check if file is a valid tar.gz (should be > 1MB and start with gzip magic bytes)
+            local size=$(stat -c%s "$file" 2>/dev/null || echo "0")
+            if [[ $size -gt 1048576 ]]; then  # > 1MB
+                if file "$file" | grep -q "gzip compressed data"; then
+                    return 0
+                fi
+            fi
+        fi
+        return 1
+    }
+    
+    # Method 1: Try official phpMyAdmin download (most reliable)
+    echo "🔄 Trying official phpMyAdmin download..."
+    if wget -q --timeout=30 --tries=3 https://files.phpmyadmin.net/phpMyAdmin/5.2.2/phpMyAdmin-5.2.2-all-languages.tar.gz; then
+        if validate_file "phpMyAdmin-5.2.2-all-languages.tar.gz"; then
             DOWNLOAD_SUCCESS=true
-            echo "✅ Download successful via curl"
+            echo "✅ Download successful via official phpMyAdmin"
         else
-            echo "❌ Curl download failed, trying GitHub mirror..."
-            
-            # Method 3: Try GitHub mirror
-            echo "🔄 Trying GitHub mirror..."
-            if wget -q --timeout=30 --tries=3 https://github.com/phpmyadmin/phpmyadmin/releases/download/5.2.1/phpMyAdmin-5.2.1-all-languages.tar.gz; then
+            echo "❌ Downloaded file is invalid, trying alternative..."
+            rm -f phpMyAdmin-5.2.2-all-languages.tar.gz
+        fi
+    fi
+    
+    # Method 2: Try with curl if wget failed
+    if [[ "$DOWNLOAD_SUCCESS" == false ]]; then
+        echo "🔄 Trying with curl..."
+        if curl -L -o phpMyAdmin-5.2.2-all-languages.tar.gz --connect-timeout 30 --max-time 300 https://files.phpmyadmin.net/phpMyAdmin/5.2.2/phpMyAdmin-5.2.2-all-languages.tar.gz; then
+            if validate_file "phpMyAdmin-5.2.2-all-languages.tar.gz"; then
                 DOWNLOAD_SUCCESS=true
-                echo "✅ Download successful via GitHub mirror"
+                echo "✅ Download successful via curl"
             else
-                echo "❌ All download methods failed"
+                echo "❌ Downloaded file is invalid"
+                rm -f phpMyAdmin-5.2.2-all-languages.tar.gz
+            fi
+        fi
+    fi
+    
+    # Method 3: Try GitHub releases as fallback
+    if [[ "$DOWNLOAD_SUCCESS" == false ]]; then
+        echo "🔄 Trying GitHub releases..."
+        if wget -q --timeout=30 --tries=3 https://github.com/phpmyadmin/phpmyadmin/releases/download/5.2.2/phpMyAdmin-5.2.2-all-languages.tar.gz; then
+            if validate_file "phpMyAdmin-5.2.2-all-languages.tar.gz"; then
+                DOWNLOAD_SUCCESS=true
+                echo "✅ Download successful via GitHub releases"
+            else
+                echo "❌ Downloaded file is invalid"
+                rm -f phpMyAdmin-5.2.2-all-languages.tar.gz
             fi
         fi
     fi
     
     if [[ "$DOWNLOAD_SUCCESS" == false ]]; then
         print_error "All download methods failed. Please check your internet connection."
+        print_error "Debug information:"
+        echo "   • Current directory: $(pwd)"
+        echo "   • Files in directory: $(ls -la)"
+        echo "   • Network connectivity test:"
+        ping -c 1 8.8.8.8 >/dev/null 2>&1 && echo "     ✅ Internet connection OK" || echo "     ❌ Internet connection failed"
         print_error "You can manually download phpMyAdmin from: https://www.phpmyadmin.net/downloads/"
-        print_error "And extract it to: /var/www/$PMA_FOLDER"
+        print_error "And extract it to: /var/www/$TEMP_FOLDER"
         exit 1
     fi
     
@@ -113,7 +153,10 @@ install_phpmyadmin() {
     print_status "Extracting phpMyAdmin files..."
     echo "📦 Extracting phpMyAdmin files..."
     
-    if [[ -f "phpMyAdmin-latest-all-languages.tar.gz" ]]; then
+    if [[ -f "phpMyAdmin-5.2.2-all-languages.tar.gz" ]]; then
+        tar -xzf phpMyAdmin-5.2.2-all-languages.tar.gz --strip-components=1
+        rm phpMyAdmin-5.2.2-all-languages.tar.gz
+    elif [[ -f "phpMyAdmin-latest-all-languages.tar.gz" ]]; then
         tar -xzf phpMyAdmin-latest-all-languages.tar.gz --strip-components=1
         rm phpMyAdmin-latest-all-languages.tar.gz
     elif [[ -f "phpMyAdmin-5.2.1-all-languages.tar.gz" ]]; then
@@ -123,6 +166,19 @@ install_phpmyadmin() {
         print_error "No phpMyAdmin archive found after download"
         exit 1
     fi
+    
+    # Validate extraction
+    print_status "Validating extracted files..."
+    echo "🔍 Checking for required files..."
+    
+    if [[ ! -f "index.php" ]] || [[ ! -f "config.sample.inc.php" ]]; then
+        print_error "phpMyAdmin files not extracted correctly"
+        echo "   • Files found: $(ls -la | head -10)"
+        print_error "Please check the download and extraction process"
+        exit 1
+    fi
+    
+    echo "✅ phpMyAdmin files extracted successfully"
     
     # Create configuration
     print_status "Configuring phpMyAdmin..."
@@ -140,21 +196,110 @@ install_phpmyadmin() {
     # Set permissions
     print_status "Setting file permissions..."
     echo "🔐 Setting proper permissions..."
-    chown -R www-data:www-data /var/www/$PMA_FOLDER
-    chmod -R 755 /var/www/$PMA_FOLDER
+    chown -R www-data:www-data /var/www/$TEMP_FOLDER
+    chmod -R 755 /var/www/$TEMP_FOLDER
     
     # Create temp directory if it doesn't exist
-    mkdir -p /var/www/$PMA_FOLDER/tmp
-    chmod 777 /var/www/$PMA_FOLDER/tmp
-    chown www-data:www-data /var/www/$PMA_FOLDER/tmp
+    mkdir -p /var/www/$TEMP_FOLDER/tmp
+    chmod 777 /var/www/$TEMP_FOLDER/tmp
+    chown www-data:www-data /var/www/$TEMP_FOLDER/tmp
     
-    # Create Nginx configuration for phpMyAdmin
+    # After successful extraction, ask user for folder name
+    while true; do
+        echo
+        read -p "Do you want to use a custom folder name for security? (y/n): " USE_CUSTOM_FOLDER
+        case $USE_CUSTOM_FOLDER in
+            [Yy]*)
+                while true; do
+                    read -p "Enter custom folder name (alphanumeric only): " PMA_FOLDER
+                    if [[ $PMA_FOLDER =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                        break
+                    else
+                        print_error "Invalid folder name. Use only letters, numbers, underscore, and hyphen."
+                    fi
+                done
+                break
+                ;;
+            [Nn]*)
+                PMA_FOLDER="pma_$(openssl rand -hex 4)"
+                print_status "Using auto-generated folder name: $PMA_FOLDER"
+                break
+                ;;
+            *)
+                print_error "Please answer y or n."
+                ;;
+        esac
+    done
+    
+    # Move files to final location
+    if [ -d "/var/www/$PMA_FOLDER" ]; then
+        print_error "Folder /var/www/$PMA_FOLDER already exists!"
+        read -p "Do you want to remove it and continue? (y/n): " REMOVE_EXISTING
+        case $REMOVE_EXISTING in
+            [Yy]*)
+                rm -rf "/var/www/$PMA_FOLDER"
+                ;;
+            *)
+                print_error "Installation cancelled."
+                cleanup_installation $TEMP_FOLDER
+                return 1
+                ;;
+        esac
+    fi
+    
+    mv /var/www/$TEMP_FOLDER /var/www/$PMA_FOLDER
+    
+    # Ask for domain setup
+    while true; do
+        echo
+        echo "Select domain setup type:"
+        echo "1) Install on main domain (example.com/phpmyadmin)"
+        echo "2) Install on subdomain (phpmyadmin.example.com)"
+        read -p "Enter choice (1 or 2): " DOMAIN_TYPE
+        case $DOMAIN_TYPE in
+            1)
+                read -p "Enter your main domain (e.g., example.com): " DOMAIN
+                PMA_URL="$DOMAIN/$PMA_FOLDER"
+                break
+                ;;
+            2)
+                read -p "Enter your domain (e.g., example.com): " DOMAIN
+                PMA_URL="$PMA_FOLDER.$DOMAIN"
+                break
+                ;;
+            *)
+                print_error "Please select 1 or 2."
+                ;;
+        esac
+    done
+    
+    # Create Nginx configuration based on choice
     print_status "Creating Nginx configuration..."
-    echo "🌐 Creating virtual host for phpMyAdmin..."
-    cat > /etc/nginx/sites-available/phpmyadmin << EOF
+    if [ "$DOMAIN_TYPE" = "1" ]; then
+        # Configuration for main domain
+        cat > /etc/nginx/sites-available/phpmyadmin << EOF
+location /$PMA_FOLDER {
+    alias /var/www/$PMA_FOLDER;
+    index index.php index.html index.htm;
+    
+    location ~ ^/$PMA_FOLDER/(.+\.php)$ {
+        alias /var/www/$PMA_FOLDER/\$1;
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php$php_version-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME /var/www/$PMA_FOLDER/\$1;
+    }
+    
+    location ~ /\.ht {
+        deny all;
+    }
+}
+EOF
+    else
+        # Configuration for subdomain
+        cat > /etc/nginx/sites-available/phpmyadmin << EOF
 server {
     listen 80;
-    server_name $PMA_FOLDER.$domain;
+    server_name $PMA_URL;
     root /var/www/$PMA_FOLDER;
     index index.php index.html index.htm;
     
@@ -179,49 +324,65 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
 }
 EOF
+    fi
     
-    # Enable site
-    print_status "Enabling phpMyAdmin site..."
-    echo "🔗 Enabling site configuration..."
-    ln -sf /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/
-    
-    # Test and reload Nginx
-    print_status "Testing Nginx configuration..."
-    echo "🧪 Testing configuration syntax..."
-    if nginx -t; then
-        print_status "Reloading Nginx..."
-        echo "🔄 Reloading Nginx service..."
-        systemctl reload nginx
-        # Get phpMyAdmin version
-        if [[ -f "libraries/classes/Config.php" ]]; then
-            PMA_VERSION=$(grep -o "VERSION = '[^']*'" libraries/classes/Config.php | cut -d"'" -f2)
-        elif [[ -f "README" ]]; then
-            PMA_VERSION=$(grep -o "phpMyAdmin [0-9.]*" README | head -1 | cut -d' ' -f2)
-        else
-            PMA_VERSION="Latest"
+    # Enable site configuration if it's a subdomain
+    if [ "$DOMAIN_TYPE" = "2" ]; then
+        # Check if symlink already exists
+        if [ -L "/etc/nginx/sites-enabled/phpmyadmin" ]; then
+            rm -f /etc/nginx/sites-enabled/phpmyadmin
         fi
         
-        print_status "phpMyAdmin $PMA_VERSION installed successfully"
-        print_status "Access URL: http://$PMA_FOLDER.$domain"
-        print_warning "IMPORTANT: Keep this folder name secret: $PMA_FOLDER"
-        echo "$PMA_FOLDER" > /root/phpmyadmin_folder.txt
-        print_status "Folder name saved to: /root/phpmyadmin_folder.txt"
+        # Create symlink and check if successful
+        if ! ln -sf /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/; then
+            print_error "Failed to create Nginx symlink!"
+            cleanup_installation $PMA_FOLDER
+            return 1
+        fi
+    fi
+    
+    # Test Nginx configuration
+    print_status "Testing Nginx configuration..."
+    if nginx -t; then
+        print_status "Nginx configuration test successful!"
         
-        # Show troubleshooting info
-        echo ""
-        print_status "📋 Troubleshooting Information:"
-        echo "   • If you can't access phpMyAdmin, check:"
-        echo "     - Nginx is running: systemctl status nginx"
-        echo "     - PHP-FPM is running: systemctl status php$php_version-fpm"
-        echo "     - File permissions: ls -la /var/www/$PMA_FOLDER"
-        echo "     - Nginx error logs: tail -f /var/log/nginx/error.log"
-        echo "   • Default login: root (no password) or create MySQL user"
-        echo "   • Security: Consider using .htaccess or IP restrictions"
+        # Restart Nginx service
+        print_status "Restarting Nginx service..."
+        if ! systemctl restart nginx; then
+            print_error "Failed to restart Nginx!"
+            print_warning "Rolling back changes..."
+            cleanup_installation $PMA_FOLDER
+            return 1
+        fi
+        
+        # Save folder name securely
+        echo "$PMA_FOLDER" > /root/phpmyadmin_folder.txt
+        chmod 600 /root/phpmyadmin_folder.txt
+        
+        print_status "Installation completed successfully!"
+        if [ "$DOMAIN_TYPE" = "1" ]; then
+            print_status "Access URL: http://$PMA_URL"
+        else
+            print_status "Access URL: http://$PMA_URL"
+        fi
+        print_warning "IMPORTANT: Keep this folder name secret: $PMA_FOLDER"
+        print_status "Folder name saved to: /root/phpmyadmin_folder.txt"
     else
-        print_error "Nginx configuration test failed"
-        print_error "Check Nginx configuration: nginx -t"
-        print_error "Check Nginx error logs: tail -f /var/log/nginx/error.log"
-        exit 1
+        print_error "Nginx configuration test failed!"
+        print_warning "Rolling back changes..."
+        cleanup_installation $PMA_FOLDER
+        
+        echo
+        read -p "Do you want to try installation again? (y/n): " TRY_AGAIN
+        case $TRY_AGAIN in
+            [Yy]*)
+                install_phpmyadmin "$@"
+                ;;
+            *)
+                print_error "Installation cancelled."
+                return 1
+                ;;
+        esac
     fi
 }
 
