@@ -30,16 +30,25 @@ install_nodejs() {
     print_status "Installing Node.js $node_version..."
     
     # Install NodeSource repository
+    print_status "Adding NodeSource repository..."
+    echo "📦 Adding NodeSource repository for Node.js $node_version..."
     curl -fsSL https://deb.nodesource.com/setup_$node_version.x | bash -
     
     # Install Node.js and npm
+    print_status "Installing Node.js and npm..."
+    echo "📦 Installing Node.js runtime..."
     apt install -y nodejs
     
     # Install global packages
+    print_status "Installing global packages..."
+    echo "📦 Updating npm to latest version..."
     npm install -g npm@latest
+    echo "📦 Installing yarn and pm2..."
     npm install -g yarn pm2
     
     # Verify installation
+    print_status "Verifying installation..."
+    echo "✅ Checking installed versions..."
     NODE_VERSION=$(node --version)
     NPM_VERSION=$(npm --version)
     

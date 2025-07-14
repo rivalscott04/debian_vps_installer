@@ -26,12 +26,17 @@ install_nginx() {
     
     print_status "Installing Nginx..."
     
+    echo "📦 Installing Nginx web server..."
     apt install -y nginx
     
     # Create web directory
+    print_status "Creating web directory..."
+    echo "📁 Creating web directory: /var/www/$domain"
     mkdir -p /var/www/$domain
     
     # Create Nginx configuration
+    print_status "Creating Nginx configuration..."
+    echo "⚙️  Configuring virtual host for $domain"
     cat > /etc/nginx/sites-available/$domain << EOF
 server {
     listen 80;
@@ -70,11 +75,17 @@ server {
 EOF
     
     # Enable site
+    print_status "Enabling Nginx site..."
+    echo "🔗 Enabling site configuration..."
     ln -sf /etc/nginx/sites-available/$domain /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
     
     # Test Nginx configuration
+    print_status "Testing Nginx configuration..."
+    echo "🧪 Testing configuration syntax..."
     if nginx -t; then
+        print_status "Starting Nginx service..."
+        echo "🚀 Enabling and starting Nginx..."
         systemctl enable nginx
         systemctl reload nginx
         print_status "Nginx installed and configured successfully"

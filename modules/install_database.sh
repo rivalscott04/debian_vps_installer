@@ -36,13 +36,18 @@ install_database() {
     print_status "Installing MariaDB/MySQL..."
     
     # Install MariaDB
+    echo "📦 Installing MariaDB server and client..."
     apt install -y mariadb-server mariadb-client
     
     # Start and enable MariaDB
+    print_status "Starting MariaDB service..."
+    echo "🚀 Enabling and starting MariaDB..."
     systemctl enable mariadb
     systemctl start mariadb
     
     # Secure MySQL installation
+    print_status "Securing MariaDB installation..."
+    echo "🔒 Running MySQL secure installation..."
     mysql_secure_installation << EOF
 
 y
@@ -56,6 +61,9 @@ y
 EOF
     
     # Create database and user
+    print_status "Creating database and user..."
+    echo "🗄️  Creating database: $db_name"
+    echo "👤 Creating user: $db_user"
     mysql -u root -p$db_pass << EOF
 CREATE DATABASE IF NOT EXISTS $db_name CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '$db_user'@'localhost' IDENTIFIED BY '$db_pass';
@@ -64,6 +72,8 @@ FLUSH PRIVILEGES;
 EOF
     
     # Configure MariaDB for better performance
+    print_status "Optimizing MariaDB performance..."
+    echo "⚡ Configuring performance settings..."
     cat >> /etc/mysql/mariadb.conf.d/50-server.cnf << EOF
 
 # Performance optimization
@@ -77,6 +87,8 @@ max_connections = 100
 EOF
     
     # Restart MariaDB
+    print_status "Restarting MariaDB with new configuration..."
+    echo "🔄 Restarting MariaDB service..."
     systemctl restart mariadb
     
     print_status "Database installed and configured successfully"

@@ -26,23 +26,35 @@ install_php() {
     print_status "Installing PHP $php_version..."
     
     # Add PHP repository
+    print_status "Adding PHP repository..."
     apt install -y software-properties-common
     add-apt-repository -y ppa:ondrej/php
+    print_status "Updating package list..."
     apt update
     
     # Install PHP and extensions
-    apt install -y php$php_version php$php_version-fpm php$php_version-cli php$php_version-common \
-                   php$php_version-mysql php$php_version-zip php$php_version-gd php$php_version-mbstring \
-                   php$php_version-curl php$php_version-xml php$php_version-bcmath php$php_version-json \
-                   php$php_version-opcache php$php_version-redis php$php_version-msgpack php$php_version-igbinary
+    print_status "Installing PHP $php_version and extensions..."
+    echo "📦 Installing core PHP packages..."
+    apt install -y php$php_version php$php_version-fpm php$php_version-cli php$php_version-common
+    
+    echo "📦 Installing PHP extensions..."
+    apt install -y php$php_version-mysql php$php_version-zip php$php_version-gd php$php_version-mbstring \
+                   php$php_version-curl php$php_version-xml php$php_version-bcmath php$php_version-json
+    
+    echo "📦 Installing performance extensions..."
+    apt install -y php$php_version-opcache php$php_version-redis php$php_version-msgpack php$php_version-igbinary
     
     # Configure PHP
+    print_status "Configuring PHP settings..."
+    echo "⚙️  Optimizing PHP configuration..."
     sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 64M/' /etc/php/$php_version/fpm/php.ini
     sed -i 's/post_max_size = 8M/post_max_size = 64M/' /etc/php/$php_version/fpm/php.ini
     sed -i 's/memory_limit = 128M/memory_limit = 256M/' /etc/php/$php_version/fpm/php.ini
     sed -i 's/max_execution_time = 30/max_execution_time = 300/' /etc/php/$php_version/fpm/php.ini
     
     # Enable and start PHP-FPM
+    print_status "Starting PHP-FPM service..."
+    echo "🚀 Enabling and starting PHP-FPM..."
     systemctl enable php$php_version-fpm
     systemctl start php$php_version-fpm
     

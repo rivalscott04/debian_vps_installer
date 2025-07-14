@@ -37,42 +37,58 @@ install_wordpress() {
     print_status "Installing WordPress for domain: $domain"
     
     # Create web directory
+    print_status "Creating web directory..."
+    echo "📁 Creating directory: /var/www/$domain"
     mkdir -p /var/www/$domain
     cd /var/www/$domain
     
     # Download WordPress
+    print_status "Downloading WordPress..."
+    echo "⬇️  Downloading latest WordPress..."
     wget -q https://wordpress.org/latest.tar.gz
     if [[ $? -ne 0 ]]; then
         print_error "Failed to download WordPress"
         exit 1
     fi
     
+    print_status "Extracting WordPress files..."
+    echo "📦 Extracting WordPress files..."
     tar -xzf latest.tar.gz --strip-components=1
     rm latest.tar.gz
     
     # Set permissions
+    print_status "Setting file permissions..."
+    echo "🔐 Setting proper permissions..."
     chown -R www-data:www-data /var/www/$domain
     chmod -R 755 /var/www/$domain
     
     # Create wp-config.php
+    print_status "Configuring WordPress..."
+    echo "⚙️  Creating wp-config.php..."
     cp wp-config-sample.php wp-config.php
     sed -i "s/database_name_here/$db_name/" wp-config.php
     sed -i "s/username_here/$db_user/" wp-config.php
     sed -i "s/password_here/$db_pass/" wp-config.php
     
     # Generate WordPress keys
+    print_status "Generating WordPress security keys..."
+    echo "🔑 Generating unique security keys..."
     SALT=$(curl -s https://api.wordpress.org/secret-key/1.1/salt/)
     if [[ $? -eq 0 ]]; then
         sed -i "/#@-/,/#@+/c\\$SALT" wp-config.php
+        echo "✅ Security keys generated successfully"
     else
         print_warning "Failed to generate WordPress keys. Using default keys."
     fi
     
     # Create database if not exists
+    print_status "Setting up database..."
+    echo "🗄️  Creating database if not exists..."
     mysql -u root -p$db_pass -e "CREATE DATABASE IF NOT EXISTS $db_name CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null || \
     mysql -u root -e "CREATE DATABASE IF NOT EXISTS $db_name CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
     
     # Create database user if not exists
+    echo "👤 Creating database user if not exists..."
     mysql -u root -p$db_pass -e "CREATE USER IF NOT EXISTS '$db_user'@'localhost' IDENTIFIED BY '$db_pass'; GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost'; FLUSH PRIVILEGES;" 2>/dev/null || \
     mysql -u root -e "CREATE USER IF NOT EXISTS '$db_user'@'localhost' IDENTIFIED BY '$db_pass'; GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost'; FLUSH PRIVILEGES;"
     

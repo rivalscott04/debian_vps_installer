@@ -66,21 +66,30 @@ install_ssl() {
     fi
     
     # Install Certbot
+    print_status "Installing Certbot..."
+    echo "📦 Installing Let's Encrypt Certbot..."
     apt install -y certbot python3-certbot-nginx
     
     # Stop Nginx temporarily for standalone mode
+    print_status "Stopping Nginx for certificate validation..."
+    echo "⏸️  Temporarily stopping Nginx..."
     systemctl stop nginx
     
     # Get SSL certificate using standalone mode
+    print_status "Obtaining SSL certificate..."
+    echo "🔐 Requesting SSL certificate from Let's Encrypt..."
     if certbot certonly --standalone -d $domain -d www.$domain --non-interactive --agree-tos --email $email; then
         print_status "SSL certificate obtained successfully"
         
         # Configure Nginx for SSL
         if [[ -f /etc/nginx/sites-available/$domain ]]; then
+            print_status "Configuring Nginx for SSL..."
+            echo "⚙️  Backing up original configuration..."
             # Backup original config
             cp /etc/nginx/sites-available/$domain /etc/nginx/sites-available/$domain.backup
             
             # Create SSL configuration
+            echo "🔐 Creating SSL-enabled configuration..."
             cat > /etc/nginx/sites-available/$domain << EOF
 server {
     listen 80;
@@ -136,12 +145,17 @@ server {
 EOF
             
             # Test and reload Nginx
+            print_status "Testing Nginx configuration..."
+            echo "🧪 Testing SSL configuration..."
             if nginx -t; then
+                print_status "Starting Nginx with SSL..."
+                echo "🚀 Starting and reloading Nginx..."
                 systemctl start nginx
                 systemctl reload nginx
                 print_status "Nginx configured for SSL successfully"
             else
                 print_error "Nginx configuration test failed"
+                echo "⚠️  Restoring original configuration..."
                 # Restore backup
                 cp /etc/nginx/sites-available/$domain.backup /etc/nginx/sites-available/$domain
                 systemctl start nginx
@@ -150,6 +164,8 @@ EOF
         fi
         
         # Setup auto-renewal
+        print_status "Setting up auto-renewal..."
+        echo "⏰ Scheduling certificate auto-renewal..."
         (crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet --nginx") | crontab -
         
         print_status "SSL certificate installed successfully"

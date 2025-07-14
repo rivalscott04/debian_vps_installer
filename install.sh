@@ -27,18 +27,96 @@ DB_NAME=""
 DB_USER=""
 DB_PASS=""
 PMA_FOLDER=""
+LANGUAGE="en"  # Default language: en (English) or id (Indonesian)
+
+# Load language files
+LANGUAGES_DIR="$SCRIPT_DIR/languages"
+
+# Function to get language string
+get_text() {
+    local key=$1
+    if [[ "$LANGUAGE" == "en" ]]; then
+        source "$LANGUAGES_DIR/en.sh"
+        echo "${EN_STRINGS[$key]}"
+    elif [[ "$LANGUAGE" == "id" ]]; then
+        source "$LANGUAGES_DIR/id.sh"
+        echo "${ID_STRINGS[$key]}"
+    else
+        # Default to English
+        source "$LANGUAGES_DIR/en.sh"
+        echo "${EN_STRINGS[$key]}"
+    fi
+}
+
+# Function to select language
+select_language() {
+    clear
+    print_header
+    echo ""
+    echo -e "${BLUE}Select language / Pilih bahasa:${NC}"
+    echo "1) English"
+    echo "2) Indonesia"
+    echo ""
+    
+    while true; do
+        read -p "Enter your choice / Masukkan pilihan (1-2) [1]: " lang_choice
+        lang_choice=${lang_choice:-1}
+        
+        case $lang_choice in
+            1) LANGUAGE="en"; break ;;
+            2) LANGUAGE="id"; break ;;
+            *) 
+                echo -e "${RED}[ERROR] Invalid choice. Please select 1-2${NC}"
+                ;;
+        esac
+    done
+    
+    if [[ "$LANGUAGE" == "en" ]]; then
+        print_status "Language set to: English"
+    else
+        print_status "Bahasa diset ke: Indonesia"
+    fi
+}
+
+# Function to ask user what to do next
+ask_continue() {
+    echo ""
+    print_status "$(get_text "MODULE_COMPLETED")"
+    echo -e "${BLUE}$(get_text "WHAT_NEXT")${NC}"
+    echo "$(get_text "BACK_TO_MENU")"
+    echo "$(get_text "EXIT_NOW")"
+    echo ""
+    
+    while true; do
+        read -p "$(get_text "SELECT_NEXT") " continue_choice
+        
+        case $continue_choice in
+            1) return 0 ;; # Continue to menu
+            2) 
+                print_status "$(get_text "GOODBYE")"
+                exit 0
+                ;;
+            *)
+                print_error "$(get_text "INVALID_CHOICE")"
+                ;;
+        esac
+    done
+}
 
 # Function to print colored output
 print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    local text=$(get_text "INFO")
+    echo -e "${GREEN}[$text]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    local text=$(get_text "WARNING")
+    echo -e "${YELLOW}[$text]${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    local text=$(get_text "ERROR")
+    echo -e "${RED}[$text]${NC} $1"
 }
 
 print_header() {
@@ -342,22 +420,22 @@ configure_webapp() {
 # Function to display installation summary
 show_summary() {
     print_header
-    echo -e "${GREEN}🎉 Installation completed successfully!${NC}"
+    echo -e "${GREEN}🎉 $(get_text "INSTALLATION_COMPLETED")${NC}"
     echo ""
-    echo -e "${BLUE}Installation Summary:${NC}"
+    echo -e "${BLUE}$(get_text "INSTALLATION_SUMMARY")${NC}"
     echo "Domain: $DOMAIN"
     echo "PHP Version: $PHP_VERSION"
     echo "Database: $DB_NAME"
     echo "Database User: $DB_USER"
     echo "Database Password: $DB_PASS"
     echo ""
-    echo -e "${BLUE}Access Information:${NC}"
+    echo -e "${BLUE}$(get_text "ACCESS_INFO")${NC}"
     echo "WordPress: https://$DOMAIN"
     if [[ -n "$PMA_FOLDER" ]]; then
         echo "phpMyAdmin: https://$PMA_FOLDER.$DOMAIN"
     fi
     echo ""
-    echo -e "${BLUE}Next Steps:${NC}"
+    echo -e "${BLUE}$(get_text "NEXT_STEPS")${NC}"
     echo "1. Complete WordPress setup at https://$DOMAIN"
     if [[ -n "$PMA_FOLDER" ]]; then
         echo "2. Access phpMyAdmin at https://$PMA_FOLDER.$DOMAIN"
@@ -365,7 +443,7 @@ show_summary() {
     echo "3. Configure your domain DNS if not done already"
     echo "4. Set up regular backups"
     echo ""
-    echo -e "${YELLOW}Important:${NC}"
+    echo -e "${YELLOW}$(get_text "IMPORTANT")${NC}"
     if [[ -n "$PMA_FOLDER" ]]; then
         echo "- Keep phpMyAdmin folder name secret: $PMA_FOLDER"
     fi
@@ -373,7 +451,7 @@ show_summary() {
     echo "- Backup script: /usr/local/bin/backup-system.sh"
     echo "- System info: /usr/local/bin/system-info.sh"
     echo ""
-    echo -e "${GREEN}Happy hosting! 🚀${NC}"
+    echo -e "${GREEN}$(get_text "HAPPY_HOSTING") 🚀${NC}"
 }
 
 # Function to show menu
@@ -382,23 +460,23 @@ show_menu() {
         clear
         print_header
         echo ""
-        echo -e "${BLUE}Select an option:${NC}"
-        echo "1) Full Installation (Recommended)"
-        echo "2) Install PHP only"
-        echo "3) Install Nginx only"
-        echo "4) Install Database only"
-        echo "5) Install WordPress only"
-        echo "6) Install phpMyAdmin only"
-        echo "7) Install Node.js only"
-        echo "8) Install FrankenPHP only"
-        echo "9) Install SSL certificate"
-        echo "10) Optimize server"
-        echo "11) Configure web app"
-        echo "12) Show system information"
-        echo "0) Exit"
+        echo -e "${BLUE}$(get_text "SELECT_OPTION")${NC}"
+        echo "1) $(get_text "FULL_INSTALL")"
+        echo "2) $(get_text "INSTALL_PHP")"
+        echo "3) $(get_text "INSTALL_NGINX")"
+        echo "4) $(get_text "INSTALL_DB")"
+        echo "5) $(get_text "INSTALL_WP")"
+        echo "6) $(get_text "INSTALL_PMA")"
+        echo "7) $(get_text "INSTALL_NODE")"
+        echo "8) $(get_text "INSTALL_FRANKEN")"
+        echo "9) $(get_text "INSTALL_SSL")"
+        echo "10) $(get_text "OPTIMIZE_SERVER")"
+        echo "11) $(get_text "CONFIGURE_WEBAPP")"
+        echo "12) $(get_text "SHOW_SYSINFO")"
+        echo "0) $(get_text "EXIT")"
         echo ""
         
-        read -p "Enter your choice (0-12): " choice
+        read -p "$(get_text "ENTER_CHOICE") (0-12): " choice
         
         case $choice in
             1)
@@ -417,19 +495,49 @@ show_menu() {
                 show_summary
                 break
                 ;;
-            2) install_php ;;
-            3) install_nginx ;;
-            4) install_database ;;
-            5) install_wordpress ;;
-            6) install_phpmyadmin ;;
-            7) install_nodejs ;;
-            8) install_frankenphp ;;
-            9) install_ssl ;;
-            10) optimize_server ;;
-            11) configure_webapp ;;
+            2) 
+                install_php
+                ask_continue
+                ;;
+            3) 
+                install_nginx
+                ask_continue
+                ;;
+            4) 
+                install_database
+                ask_continue
+                ;;
+            5) 
+                install_wordpress
+                ask_continue
+                ;;
+            6) 
+                install_phpmyadmin
+                ask_continue
+                ;;
+            7) 
+                install_nodejs
+                ask_continue
+                ;;
+            8) 
+                install_frankenphp
+                ask_continue
+                ;;
+            9) 
+                install_ssl
+                ask_continue
+                ;;
+            10) 
+                optimize_server
+                ask_continue
+                ;;
+            11) 
+                configure_webapp
+                ask_continue
+                ;;
             12)
                 print_status "System Information:"
-                echo "OS: $(lsb_release -d | cut -f2)"
+                echo "OS: $(lsb_release -d | cut -d2)"
                 echo "Kernel: $(uname -r)"
                 echo "Architecture: $(uname -m)"
                 echo "Memory: $(free -h | awk 'NR==2{print $2}')"
@@ -437,11 +545,11 @@ show_menu() {
                 read -p "Press Enter to continue..."
                 ;;
             0)
-                print_status "Goodbye!"
+                print_status "$(get_text "GOODBYE")"
                 exit 0
                 ;;
             *)
-                print_error "Invalid choice. Please select 0-12"
+                print_error "$(get_text "INVALID_CHOICE")"
                 sleep 2
                 ;;
         esac
@@ -452,6 +560,9 @@ show_menu() {
 main() {
     check_root
     check_system
+    
+    # Select language first
+    select_language
     
     if [[ $# -eq 0 ]]; then
         show_menu

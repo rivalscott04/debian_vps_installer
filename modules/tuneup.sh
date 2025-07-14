@@ -27,12 +27,17 @@ print_warning() {
 install_redis() {
     print_status "Installing Redis..."
     
+    echo "📦 Installing Redis server..."
     apt install -y redis-server
     
     # Configure Redis
+    print_status "Configuring Redis..."
+    echo "⚙️  Optimizing Redis memory settings..."
     sed -i 's/# maxmemory <bytes>/maxmemory 256mb/' /etc/redis/redis.conf
     sed -i 's/# maxmemory-policy noeviction/maxmemory-policy allkeys-lru/' /etc/redis/redis.conf
     
+    print_status "Starting Redis service..."
+    echo "🚀 Enabling and starting Redis..."
     systemctl enable redis-server
     systemctl start redis-server
     
@@ -45,6 +50,7 @@ configure_opcache() {
     print_status "Configuring PHP OPcache..."
     
     # Create OPcache configuration
+    echo "⚙️  Creating OPcache configuration for PHP $php_version..."
     cat > /etc/php/$php_version/fpm/conf.d/10-opcache.ini << EOF
 opcache.enable=1
 opcache.memory_consumption=128
@@ -58,6 +64,8 @@ opcache.save_comments=1
 EOF
     
     # Restart PHP-FPM
+    print_status "Restarting PHP-FPM..."
+    echo "🔄 Restarting PHP-FPM with OPcache..."
     systemctl restart php$php_version-fpm
     
     print_status "OPcache configured for PHP $php_version"
@@ -67,9 +75,11 @@ optimize_sysctl() {
     print_status "Optimizing system kernel parameters..."
     
     # Backup current sysctl
+    echo "💾 Backing up current sysctl configuration..."
     cp /etc/sysctl.conf /etc/sysctl.conf.backup.$(date +%Y%m%d_%H%M%S)
     
     # Add optimization parameters
+    echo "⚡ Adding performance optimization parameters..."
     cat >> /etc/sysctl.conf << EOF
 
 # Network optimization
@@ -95,6 +105,8 @@ vm.dirty_background_ratio = 5
 EOF
     
     # Apply changes
+    print_status "Applying kernel parameters..."
+    echo "🔄 Applying new sysctl parameters..."
     sysctl -p
     
     print_status "System kernel parameters optimized"
@@ -104,9 +116,12 @@ setup_monitoring() {
     print_status "Setting up basic monitoring..."
     
     # Install monitoring tools
+    echo "📦 Installing monitoring tools..."
     apt install -y htop iotop nethogs nload
     
     # Create system info script
+    print_status "Creating system monitoring script..."
+    echo "📝 Creating system information script..."
     cat > /usr/local/bin/system-info.sh << 'EOF'
 #!/bin/bash
 
@@ -150,6 +165,7 @@ EOF
 create_backup_script() {
     print_status "Creating backup script..."
     
+    echo "📝 Creating automated backup script..."
     cat > /usr/local/bin/backup-system.sh << 'EOF'
 #!/bin/bash
 
@@ -186,6 +202,8 @@ EOF
     chmod +x /usr/local/bin/backup-system.sh
     
     # Add to crontab (daily backup at 2 AM)
+    print_status "Scheduling automated backups..."
+    echo "⏰ Scheduling daily backup at 2:00 AM..."
     (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-system.sh") | crontab -
     
     print_status "Backup script created and scheduled for daily execution at 2 AM"
@@ -195,23 +213,31 @@ setup_firewall() {
     print_status "Setting up basic firewall..."
     
     # Install UFW if not present
+    echo "📦 Installing UFW firewall..."
     apt install -y ufw
     
     # Reset UFW
+    print_status "Configuring firewall rules..."
+    echo "🔒 Resetting UFW configuration..."
     ufw --force reset
     
     # Set default policies
+    echo "🛡️  Setting default policies..."
     ufw default deny incoming
     ufw default allow outgoing
     
     # Allow SSH
+    echo "🔓 Allowing SSH access..."
     ufw allow ssh
     
     # Allow HTTP and HTTPS
+    echo "🌐 Allowing HTTP and HTTPS..."
     ufw allow 80/tcp
     ufw allow 443/tcp
     
     # Enable UFW
+    print_status "Enabling firewall..."
+    echo "🚀 Enabling UFW firewall..."
     ufw --force enable
     
     print_status "Firewall configured and enabled"
@@ -221,19 +247,28 @@ optimize_nginx() {
     print_status "Optimizing Nginx configuration..."
     
     # Backup current config
+    echo "💾 Backing up Nginx configuration..."
     cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup.$(date +%Y%m%d_%H%M%S)
     
     # Get number of CPU cores
     CPU_CORES=$(nproc)
+    echo "⚡ Detected $CPU_CORES CPU cores"
     
     # Optimize worker processes
+    print_status "Optimizing worker processes..."
+    echo "🔧 Setting worker processes to $CPU_CORES..."
     sed -i "s/worker_processes auto;/worker_processes $CPU_CORES;/" /etc/nginx/nginx.conf
     
     # Add performance settings
+    echo "⚙️  Adding performance settings..."
     sed -i '/events {/a\    use epoll;\n    worker_connections 1024;\n    multi_accept on;' /etc/nginx/nginx.conf
     
     # Test and reload
+    print_status "Testing Nginx configuration..."
+    echo "🧪 Testing optimized configuration..."
     if nginx -t; then
+        print_status "Reloading Nginx..."
+        echo "🔄 Reloading Nginx with optimized settings..."
         systemctl reload nginx
         print_status "Nginx optimized"
     else

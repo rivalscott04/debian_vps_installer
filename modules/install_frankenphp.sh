@@ -30,6 +30,8 @@ install_frankenphp() {
     print_status "Installing FrankenPHP..."
     
     # Download FrankenPHP
+    print_status "Downloading FrankenPHP..."
+    echo "⬇️  Downloading latest FrankenPHP..."
     cd /tmp
     wget -q https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64.tar.gz
     
@@ -39,11 +41,16 @@ install_frankenphp() {
     fi
     
     # Extract and install
+    print_status "Extracting and installing FrankenPHP..."
+    echo "📦 Extracting FrankenPHP binary..."
     tar -xzf frankenphp-linux-x86_64.tar.gz
+    echo "📁 Installing to /usr/local/bin/"
     mv frankenphp /usr/local/bin/
     chmod +x /usr/local/bin/frankenphp
     
     # Create FrankenPHP service
+    print_status "Creating systemd service..."
+    echo "⚙️  Creating FrankenPHP service configuration..."
     cat > /etc/systemd/system/frankenphp.service << EOF
 [Unit]
 Description=FrankenPHP Server
@@ -63,6 +70,8 @@ WantedBy=multi-user.target
 EOF
     
     # Create FrankenPHP configuration
+    print_status "Creating FrankenPHP configuration..."
+    echo "⚙️  Creating Caddyfile configuration..."
     mkdir -p /etc/frankenphp
     cat > /etc/frankenphp/Caddyfile << EOF
 {
@@ -85,14 +94,20 @@ www.$domain {
 EOF
     
     # Set permissions
+    print_status "Setting permissions..."
+    echo "🔐 Setting proper permissions..."
     chown -R www-data:www-data /etc/frankenphp
     
     # Enable and start FrankenPHP
+    print_status "Starting FrankenPHP service..."
+    echo "🚀 Enabling and starting FrankenPHP..."
     systemctl daemon-reload
     systemctl enable frankenphp
     systemctl start frankenphp
     
     # Clean up
+    print_status "Cleaning up temporary files..."
+    echo "🧹 Removing temporary files..."
     rm -f /tmp/frankenphp-linux-x86_64.tar.gz
     
     print_status "FrankenPHP installed successfully"
