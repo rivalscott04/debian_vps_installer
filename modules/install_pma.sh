@@ -286,7 +286,6 @@ location /$PMA_FOLDER {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     
     location ~ ^/$PMA_FOLDER/(.+\.php)$ {
         alias /var/www/$PMA_FOLDER/\$1;
@@ -306,48 +305,8 @@ EOF
         cat > /etc/nginx/sites-available/phpmyadmin << EOF
 server {
     listen 80;
-    listen 443 ssl;
+    listen 443 ssl http2;
     server_name $PMA_URL;
-    
-    # SSL Configuration
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    
-    # Optimize SSL
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    ssl_session_tickets off;
-    
-    # Cloudflare SSL
-    set_real_ip_from 103.21.244.0/22;
-    set_real_ip_from 103.22.200.0/22;
-    set_real_ip_from 103.31.4.0/22;
-    set_real_ip_from 104.16.0.0/13;
-    set_real_ip_from 104.24.0.0/14;
-    set_real_ip_from 108.162.192.0/18;
-    set_real_ip_from 131.0.72.0/22;
-    set_real_ip_from 141.101.64.0/18;
-    set_real_ip_from 162.158.0.0/15;
-    set_real_ip_from 172.64.0.0/13;
-    set_real_ip_from 173.245.48.0/20;
-    set_real_ip_from 188.114.96.0/20;
-    set_real_ip_from 190.93.240.0/20;
-    set_real_ip_from 197.234.240.0/22;
-    set_real_ip_from 198.41.128.0/17;
-    set_real_ip_from 2400:cb00::/32;
-    set_real_ip_from 2606:4700::/32;
-    set_real_ip_from 2803:f800::/32;
-    set_real_ip_from 2405:b500::/32;
-    set_real_ip_from 2405:8100::/32;
-    set_real_ip_from 2c0f:f248::/32;
-    set_real_ip_from 2a06:98c0::/29;
-    
-    real_ip_header CF-Connecting-IP;
-    
-    # Force HTTPS
-    if (\$scheme = http) {
-        return 301 https://\$server_name\$request_uri;
-    }
     
     root /var/www/$PMA_FOLDER;
     index index.php index.html index.htm;
@@ -356,7 +315,12 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
+    # Basic SSL Configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # Handle Cloudflare (simplified)
+    real_ip_header CF-Connecting-IP;
     
     location / {
         try_files \$uri \$uri/ /index.php?\$args;
